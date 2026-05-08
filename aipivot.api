@@ -1,0 +1,45 @@
+syntax = "v1"
+
+info(
+	title:   "AIPivot API"
+	desc:    "Infrastructure endpoints for AIPivot"
+	author:  "AIPivot"
+	version: "v1"
+)
+
+type (
+	HealthResponse {
+		Status string `json:"status"`
+	}
+
+	DependencyStatus {
+		Name  string `json:"name"`
+		Ready bool   `json:"ready"`
+		Error string `json:"error,optional"`
+	}
+
+	ReadyResponse {
+		Status       string             `json:"status"`
+		Dependencies []DependencyStatus `json:"dependencies"`
+	}
+
+	PingResponse {
+		Message   string `json:"message"`
+		TraceId   string `json:"traceId"`
+		RequestId string `json:"requestId"`
+	}
+)
+
+service aipivot-api {
+	@handler HealthHandler
+	get /healthz returns (HealthResponse)
+
+	@handler ReadyHandler
+	get /readyz returns (ReadyResponse)
+
+	@handler MetricsHandler
+	get /metrics
+
+	@handler PingHandler
+	get /v1/ping returns (PingResponse)
+}

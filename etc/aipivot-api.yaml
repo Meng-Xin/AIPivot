@@ -1,0 +1,46 @@
+Name: aipivot-api
+Host: 0.0.0.0
+Port: 8888
+Mode: dev
+Timeout: 30000
+
+Log:
+  ServiceName: aipivot-api
+  Mode: console
+  Level: info
+  Encoding: plain
+
+Postgres:
+  Host: 127.0.0.1
+  Port: 5432
+  User: aipivot
+  Password: aipivot
+  Database: aipivot
+  SSLMode: disable
+  TimeZone: Asia/Shanghai
+  MaxOpenConns: 20
+  MaxIdleConns: 10
+
+Redis:
+  Addr: 127.0.0.1:6379
+  Password: ""
+  DB: 0
+
+Telemetry:
+  ServiceName: aipivot-api
+  Environment: dev
+  JaegerEndpoint: http://127.0.0.1:4317
+  SampleRatio: 1.0
+
+Metrics:
+  Enabled: true
+  Path: /metrics
+
+Auth:
+  AccessSecret: "aipivot-dev-secret-change-in-production"
+  AccessExpire: 86400
+  Issuer: aipivot
+
+Migration:
+  Enabled: true
+  Path: migrations
