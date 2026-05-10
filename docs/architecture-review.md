@@ -231,19 +231,28 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 
 ## 七、建议实施路线
 
-### Phase 0 — 基础补全（当前 → 1 周）
-- [ ] 数据库 migration 框架（golang-migrate）
-- [ ] 多租户基础表设计（tenants, users, api_keys）
-- [ ] JWT 鉴权中间件
-- [ ] 项目目录重构为模块化结构
+### Phase 0 — 基础补全（当前 → 1 周） ✅ 已完成
+- [x] 数据库 migration 框架（golang-migrate）
+- [x] 多租户基础表设计（tenants, users, api_keys）
+- [x] JWT 鉴权中间件
+- [x] 项目目录重构为模块化结构
 
-### Phase 1 — MVP 核心（2-4 周）
-- [ ] 知识库模块：文档上传 → 切块 → Embedding → pgvector 存储
-- [ ] RAG 模块：向量检索 → LLM 生成
-- [ ] Chat 模块：WebSocket 会话 + SSE 流式输出
+### Phase 1 — MVP 核心（2-4 周） 🚧 进行中
+- [x] 用户注册接口（auth.api + RegisterLogic 实现）
+- [x] 知识库数据库表设计（migration 002: knowledge_bases / documents / document_chunks + pgvector HNSW 索引）
+- [x] 对话数据库表设计（migration 003: conversations / messages）
+- [x] 知识库模块完整 CRUD（.api 定义 + handler/logic/domain/repo/dao 全层实现）
+- [x] 文档上传接口（multipart 文件上传，status=pending 异步处理桩）
+- [x] 对话模块完整 CRUD + 发消息（.api 定义 + 全层实现，MVP stub AI 回复）
+- [x] JWT 鉴权中间件集成（knowledge/chat 路由组通过 AuthMiddleware 保护）
+- [x] GORM Gen 代码生成覆盖所有新表（KnowledgeBase/Document/DocumentChunk/Conversation/Message）
+- [x] ServiceContext 完成全模块 DI 组装（Auth + Knowledge + Chat Repo 注入）
+- [ ] 知识库模块：文档解析 → 切块 → Embedding → pgvector 存储（异步 pipeline）
+- [ ] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
+- [ ] Chat 模块：WebSocket 会话 + SSE 流式输出（替换当前同步 stub）
 - [ ] LLM Gateway 集成（One API 或自建适配层）
 - [ ] 前端 Chat Widget 原型
-- [ ] 管理后台：知识库 CRUD
+- [ ] 管理后台：知识库 CRUD UI
 
 ### Phase 2 — 增强（4-8 周）
 - [ ] Agent/Skill 框架 + Function Calling
@@ -308,4 +317,46 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 
 ---
 
-*文档版本：v1.0 | 创建日期：2026-05-08*
+---
+
+## 十、开发日志
+
+### 2026-05-10 Phase 1 后端骨架搭建
+
+**完成内容：**
+
+1. **Auth 模块补全** — 新增 `/api/v1/auth/register` 注册接口，含邮箱唯一性校验、密码加密、default 租户绑定
+2. **数据库 Migration** — 新增 `000002_knowledge_base`（pgvector extension + knowledge_bases / documents / document_chunks 含 HNSW 向量索引）和 `000003_conversations`（conversations / messages），完整 COMMENT ON 注释
+3. **Knowledge 模块** — API 定义（8 个端点 CRUD + 文档上传/列表/删除）、handler/logic/domain(model+assembler)/repo/dao 全层实现
+4. **Chat 模块** — API 定义（6 个端点：会话 CRUD + 发消息 + 消息历史）、全层实现；SendMessage 使用 stub AI 回复，为 RAG/LLM 集成预留接口
+5. **基础设施** — AuthMiddleware 集成到 goctl 生成的 routes.go、ServiceContext 完成全模块 DI 组装、GORM Gen 覆盖 8 张表
+
+**当前 API 端点清单：**
+
+| 模块 | 方法 | 路径 | 鉴权 |
+|------|------|------|------|
+| Auth | POST | /api/v1/auth/login | ❌ |
+| Auth | POST | /api/v1/auth/register | ❌ |
+| Knowledge | POST | /api/v1/knowledge-bases | ✅ |
+| Knowledge | GET | /api/v1/knowledge-bases | ✅ |
+| Knowledge | GET | /api/v1/knowledge-bases/:id | ✅ |
+| Knowledge | PUT | /api/v1/knowledge-bases/:id | ✅ |
+| Knowledge | DELETE | /api/v1/knowledge-bases/:id | ✅ |
+| Knowledge | POST | /api/v1/knowledge-bases/:kbId/documents | ✅ |
+| Knowledge | GET | /api/v1/knowledge-bases/:kbId/documents | ✅ |
+| Knowledge | DELETE | /api/v1/knowledge-bases/:kbId/documents/:id | ✅ |
+| Chat | POST | /api/v1/conversations | ✅ |
+| Chat | GET | /api/v1/conversations | ✅ |
+| Chat | GET | /api/v1/conversations/:id | ✅ |
+| Chat | PUT | /api/v1/conversations/:id/close | ✅ |
+| Chat | POST | /api/v1/conversations/:convId/messages | ✅ |
+| Chat | GET | /api/v1/conversations/:convId/messages | ✅ |
+| Infra | GET | /healthz, /readyz, /metrics, /v1/ping | ❌ |
+
+**下一步优先级：**
+1. P0: 文档异步处理 pipeline（Asynq + 切块 + Embedding + pgvector 写入）
+2. P0: Eino ChatModel + Retriever 集成，替换 SendMessage 中的 stub 回复
+3. P1: SSE 流式输出
+4. P1: 前端 Chat Widget 原型
+
+*文档版本：v1.1 | 更新日期：2026-05-10*

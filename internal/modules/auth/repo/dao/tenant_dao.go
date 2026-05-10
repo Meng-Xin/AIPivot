@@ -2,47 +2,49 @@ package dao
 
 import (
 	"context"
+	"errors"
 
 	"aipivot/internal/shared/po"
+	"aipivot/internal/shared/query"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 )
 
 type TenantDao struct {
-	db *gorm.DB
+	q *query.Query
 }
 
-func NewTenantDao(db *gorm.DB) *TenantDao {
-	return &TenantDao{db: db}
+func NewTenantDao(q *query.Query) *TenantDao {
+	return &TenantDao{q: q}
 }
 
-func (d *TenantDao) WithTx(tx *gorm.DB) *TenantDao {
-	return &TenantDao{db: tx}
+func (d *TenantDao) WithTx(tx *query.Query) *TenantDao {
+	return &TenantDao{q: tx}
 }
 
 func (d *TenantDao) GetBySlug(ctx context.Context, slug string) (*po.Tenant, error) {
-	var tenant po.Tenant
-	err := d.db.WithContext(ctx).Where("slug = ?", slug).First(&tenant).Error
+	t := d.q.Tenant
+	tenant, err := t.WithContext(ctx).Where(t.Slug.Eq(slug)).First()
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		logx.WithContext(ctx).Errorf("GetBySlug err: %v", err)
 		return nil, err
 	}
-	return &tenant, nil
+	return tenant, nil
 }
 
 func (d *TenantDao) GetByID(ctx context.Context, id int64) (*po.Tenant, error) {
-	var tenant po.Tenant
-	err := d.db.WithContext(ctx).Where("id = ?", id).First(&tenant).Error
+	t := d.q.Tenant
+	tenant, err := t.WithContext(ctx).Where(t.ID.Eq(id)).First()
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		logx.WithContext(ctx).Errorf("GetByID err: %v", err)
 		return nil, err
 	}
-	return &tenant, nil
+	return tenant, nil
 }

@@ -1,0 +1,66 @@
+syntax = "v1"
+
+info (
+	title:   "认证接口"
+	desc:    "用户登录、注册等认证相关接口"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// LoginRequest 用户登录请求
+	LoginRequest {
+		Email    string `json:"email,example=user@example.com"`    // 登录邮箱
+		Password string `json:"password,example=P@ssw0rd123"`     // 登录密码
+	}
+
+	// RegisterRequest 用户注册请求
+	RegisterRequest {
+		NickName string `json:"nick_name,example=张三"` // 用户昵称
+		Email    string `json:"email,example=user@example.com"` // 注册邮箱
+		Password string `json:"password,example=P@ssw0rd123"`  // 注册密码
+	}
+
+	// ShowUser 用户信息展示对象
+	ShowUser {
+		ID        int64  `json:"id,example=1"`                                    // 用户 ID
+		UUID      string `json:"uuid,example=550e8400-e29b-41d4-a716-446655440000"` // 用户唯一标识
+		TenantID  int64  `json:"tenantId,example=100"`                             // 所属租户 ID
+		Email     string `json:"email,example=user@example.com"`                   // 邮箱
+		NickName  string `json:"nickName,example=张三"`                             // 昵称
+		Role      string `json:"role,options=admin|member,example=member"`         // 角色：admin / member
+		Status    string `json:"status,options=active|disabled,example=active"`    // 状态：active / disabled
+		LastLogin int64  `json:"lastLogin,example=1715300000000"`                  // 最近登录时间（Unix 毫秒）
+		CreatedAt int64  `json:"createdAt,example=1715200000000"`                  // 创建时间（Unix 毫秒）
+	}
+
+	// LoginData 登录成功返回的数据
+	LoginData {
+		Token    string   `json:"token,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."` // JWT 访问令牌
+		ExpireAt int64    `json:"expireAt,example=1715386400000"`                         // 令牌过期时间（Unix 毫秒）
+		User     ShowUser `json:"user"`                                                   // 当前登录用户信息
+	}
+
+	// LoginResponse 登录接口响应
+	LoginResponse {
+		Code      int32     `json:"code,example=0"`                  // 业务状态码，0 表示成功
+		Msg       string    `json:"msg,example=OK"`                  // 响应消息
+		Timestamp int64     `json:"timestamp,example=1715300000000"` // 响应时间戳（Unix 毫秒）
+		Data      LoginData `json:"data"`                             // 登录数据
+	}
+)
+
+@server (
+	group:  auth
+	prefix: /api/v1/auth
+	tags:   "认证"
+)
+service aipivot-api {
+	@doc "用户登录 - 使用邮箱和密码登录，返回 JWT 令牌及用户信息"
+	@handler LoginHandler
+	post /login (LoginRequest) returns (LoginResponse)
+
+	@doc "用户注册 - 使用邮箱注册新账户（MVP 阶段自动绑定默认租户）"
+	@handler RegisterHandler
+	post /register (RegisterRequest) returns (CommResponse)
+}

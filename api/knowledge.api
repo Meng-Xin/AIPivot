@@ -1,0 +1,177 @@
+syntax = "v1"
+
+info (
+	title:   "知识库管理接口"
+	desc:    "知识库 CRUD、文档上传与管理"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// CreateKnowledgeBaseRequest 创建知识库请求
+	CreateKnowledgeBaseRequest {
+		Name        string `json:"name"`                          // 知识库名称
+		Description string `json:"description,optional"`          // 知识库描述
+		Model       string `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+	}
+
+	// UpdateKnowledgeBaseRequest 更新知识库请求
+	UpdateKnowledgeBaseRequest {
+		ID          int64  `path:"id"`                            // 知识库 ID
+		Name        string `json:"name,optional"`                 // 知识库名称
+		Description string `json:"description,optional"`          // 知识库描述
+	}
+
+	// ShowKnowledgeBase 知识库展示对象
+	ShowKnowledgeBase {
+		ID          int64  `json:"id"`                            // 知识库 ID
+		UUID        string `json:"uuid"`                          // 唯一标识
+		Name        string `json:"name"`                          // 知识库名称
+		Description string `json:"description"`                   // 描述
+		Model       string `json:"model"`                         // Embedding 模型
+		Dimension   int    `json:"dimension"`                     // 向量维度
+		Status      string `json:"status"`                        // 状态
+		DocCount    int    `json:"docCount"`                      // 文档数
+		ChunkCount  int    `json:"chunkCount"`                    // 切块数
+		CreatedAt   int64  `json:"createdAt"`                     // 创建时间
+		UpdatedAt   int64  `json:"updatedAt"`                     // 更新时间
+	}
+
+	// GetKnowledgeBaseRequest 获取知识库详情
+	GetKnowledgeBaseRequest {
+		ID int64 `path:"id"` // 知识库 ID
+	}
+
+	// ListKnowledgeBaseRequest 知识库列表查询
+	ListKnowledgeBaseRequest {
+		Page     int    `form:"page,range=[1:]"`              // 页码
+		PageSize int    `form:"pageSize,range=[1:50]"`        // 每页条数
+		Name     string `form:"name,optional"`                // 按名称模糊搜索
+	}
+
+	// DeleteKnowledgeBaseRequest 删除知识库
+	DeleteKnowledgeBaseRequest {
+		ID int64 `path:"id"` // 知识库 ID
+	}
+
+	// KnowledgeBaseListData 知识库列表数据
+	KnowledgeBaseListData {
+		Total int64               `json:"total"` // 总数
+		List  []ShowKnowledgeBase `json:"list"`  // 列表
+	}
+
+	// KnowledgeBaseListResponse 知识库列表响应
+	KnowledgeBaseListResponse {
+		Code      int32                 `json:"code"`
+		Msg       string                `json:"msg"`
+		Timestamp int64                 `json:"timestamp"`
+		Data      KnowledgeBaseListData `json:"data"`
+	}
+
+	// KnowledgeBaseDetailResponse 知识库详情响应
+	KnowledgeBaseDetailResponse {
+		Code      int32             `json:"code"`
+		Msg       string            `json:"msg"`
+		Timestamp int64             `json:"timestamp"`
+		Data      ShowKnowledgeBase `json:"data"`
+	}
+)
+
+// ========== 文档管理 ==========
+type (
+	// UploadDocumentRequest 上传文档请求（文件通过 multipart/form-data）
+	UploadDocumentRequest {
+		KnowledgeBaseID int64 `path:"kbId"` // 知识库 ID
+	}
+
+	// ShowDocument 文档展示对象
+	ShowDocument {
+		ID          int64  `json:"id"`
+		UUID        string `json:"uuid"`
+		Name        string `json:"name"`
+		ContentType string `json:"contentType"`
+		FileSize    int64  `json:"fileSize"`
+		ChunkCount  int    `json:"chunkCount"`
+		Status      string `json:"status"`
+		ErrorMsg    string `json:"errorMsg,omitempty"`
+		CreatedAt   int64  `json:"createdAt"`
+		UpdatedAt   int64  `json:"updatedAt"`
+	}
+
+	// ListDocumentRequest 文档列表查询
+	ListDocumentRequest {
+		KnowledgeBaseID int64  `path:"kbId"`
+		Page            int    `form:"page,range=[1:]"`
+		PageSize        int    `form:"pageSize,range=[1:50]"`
+		Status          string `form:"status,optional"`
+	}
+
+	// DeleteDocumentRequest 删除文档
+	DeleteDocumentRequest {
+		KnowledgeBaseID int64 `path:"kbId"`
+		ID              int64 `path:"id"`
+	}
+
+	// DocumentListData 文档列表数据
+	DocumentListData {
+		Total int64          `json:"total"`
+		List  []ShowDocument `json:"list"`
+	}
+
+	// DocumentListResponse 文档列表响应
+	DocumentListResponse {
+		Code      int32            `json:"code"`
+		Msg       string           `json:"msg"`
+		Timestamp int64            `json:"timestamp"`
+		Data      DocumentListData `json:"data"`
+	}
+
+	// DocumentDetailResponse 文档详情响应
+	DocumentDetailResponse {
+		Code      int32        `json:"code"`
+		Msg       string       `json:"msg"`
+		Timestamp int64        `json:"timestamp"`
+		Data      ShowDocument `json:"data"`
+	}
+)
+
+// 知识库管理（需要鉴权）
+@server (
+	group:      knowledge
+	prefix:     /api/v1
+	tags:       "知识库管理"
+	middleware: AuthMiddleware
+)
+service aipivot-api {
+	@doc "创建知识库"
+	@handler CreateKnowledgeBase
+	post /knowledge-bases (CreateKnowledgeBaseRequest) returns (KnowledgeBaseDetailResponse)
+
+	@doc "获取知识库列表"
+	@handler ListKnowledgeBase
+	get /knowledge-bases (ListKnowledgeBaseRequest) returns (KnowledgeBaseListResponse)
+
+	@doc "获取知识库详情"
+	@handler GetKnowledgeBase
+	get /knowledge-bases/:id (GetKnowledgeBaseRequest) returns (KnowledgeBaseDetailResponse)
+
+	@doc "更新知识库"
+	@handler UpdateKnowledgeBase
+	put /knowledge-bases/:id (UpdateKnowledgeBaseRequest) returns (CommResponse)
+
+	@doc "删除知识库"
+	@handler DeleteKnowledgeBase
+	delete /knowledge-bases/:id (DeleteKnowledgeBaseRequest) returns (CommResponse)
+
+	@doc "上传文档到知识库"
+	@handler UploadDocument
+	post /knowledge-bases/:kbId/documents (UploadDocumentRequest) returns (DocumentDetailResponse)
+
+	@doc "获取知识库文档列表"
+	@handler ListDocument
+	get /knowledge-bases/:kbId/documents (ListDocumentRequest) returns (DocumentListResponse)
+
+	@doc "删除文档"
+	@handler DeleteDocument
+	delete /knowledge-bases/:kbId/documents/:id (DeleteDocumentRequest) returns (CommResponse)
+}

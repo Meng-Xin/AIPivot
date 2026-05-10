@@ -1,0 +1,153 @@
+syntax = "v1"
+
+info (
+	title:   "对话管理接口"
+	desc:    "AI 对话会话管理、消息收发"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// CreateConversationRequest 创建会话请求
+	CreateConversationRequest {
+		KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"` // 关联知识库 ID
+		Title           string `json:"title,optional"`           // 会话标题
+	}
+
+	// ShowConversation 会话展示对象
+	ShowConversation {
+		ID              int64  `json:"id"`
+		UUID            string `json:"uuid"`
+		KnowledgeBaseID int64  `json:"knowledgeBaseId,omitempty"`
+		Title           string `json:"title"`
+		Status          string `json:"status"`
+		Channel         string `json:"channel"`
+		MessageCount    int    `json:"messageCount"`
+		CreatedAt       int64  `json:"createdAt"`
+		UpdatedAt       int64  `json:"updatedAt"`
+	}
+
+	// ListConversationRequest 会话列表查询
+	ListConversationRequest {
+		Page     int    `form:"page,range=[1:]"`
+		PageSize int    `form:"pageSize,range=[1:50]"`
+		Status   string `form:"status,optional"`
+	}
+
+	// GetConversationRequest 会话详情
+	GetConversationRequest {
+		ID int64 `path:"id"`
+	}
+
+	// CloseConversationRequest 关闭会话
+	CloseConversationRequest {
+		ID int64 `path:"id"`
+	}
+
+	// ConversationListData 会话列表数据
+	ConversationListData {
+		Total int64              `json:"total"`
+		List  []ShowConversation `json:"list"`
+	}
+
+	// ConversationListResponse 会话列表响应
+	ConversationListResponse {
+		Code      int32                `json:"code"`
+		Msg       string               `json:"msg"`
+		Timestamp int64                `json:"timestamp"`
+		Data      ConversationListData `json:"data"`
+	}
+
+	// ConversationDetailResponse 会话详情响应
+	ConversationDetailResponse {
+		Code      int32            `json:"code"`
+		Msg       string           `json:"msg"`
+		Timestamp int64            `json:"timestamp"`
+		Data      ShowConversation `json:"data"`
+	}
+)
+
+type (
+	// SendMessageRequest 发送消息请求
+	SendMessageRequest {
+		ConversationID int64  `path:"convId"`                    // 会话 ID
+		Content        string `json:"content"`                   // 消息内容
+		ContentType    string `json:"contentType,default=text"`  // 内容类型
+	}
+
+	// ShowMessage 消息展示对象
+	ShowMessage {
+		ID          int64    `json:"id"`
+		UUID        string   `json:"uuid"`
+		Role        string   `json:"role"`
+		Content     string   `json:"content"`
+		ContentType string   `json:"contentType"`
+		TokenCount  int      `json:"tokenCount,omitempty"`
+		Model       string   `json:"model,omitempty"`
+		LatencyMs   int      `json:"latencyMs,omitempty"`
+		Sources     []string `json:"sources,omitempty"`
+		CreatedAt   int64    `json:"createdAt"`
+	}
+
+	// ListMessageRequest 消息历史查询
+	ListMessageRequest {
+		ConversationID int64 `path:"convId"`
+		Page           int   `form:"page,range=[1:]"`
+		PageSize       int   `form:"pageSize,range=[1:100]"`
+	}
+
+	// MessageListData 消息列表数据
+	MessageListData {
+		Total int64         `json:"total"`
+		List  []ShowMessage `json:"list"`
+	}
+
+	// MessageListResponse 消息列表响应
+	MessageListResponse {
+		Code      int32           `json:"code"`
+		Msg       string          `json:"msg"`
+		Timestamp int64           `json:"timestamp"`
+		Data      MessageListData `json:"data"`
+	}
+
+	// SendMessageResponse 发送消息响应（AI 回复）
+	SendMessageResponse {
+		Code      int32       `json:"code"`
+		Msg       string      `json:"msg"`
+		Timestamp int64       `json:"timestamp"`
+		Data      ShowMessage `json:"data"`
+	}
+)
+
+// 对话管理（需要鉴权）
+@server (
+	group:      chat
+	prefix:     /api/v1
+	tags:       "对话管理"
+	middleware: AuthMiddleware
+)
+service aipivot-api {
+	@doc "创建会话"
+	@handler CreateConversation
+	post /conversations (CreateConversationRequest) returns (ConversationDetailResponse)
+
+	@doc "获取会话列表"
+	@handler ListConversation
+	get /conversations (ListConversationRequest) returns (ConversationListResponse)
+
+	@doc "获取会话详情"
+	@handler GetConversation
+	get /conversations/:id (GetConversationRequest) returns (ConversationDetailResponse)
+
+	@doc "关闭会话"
+	@handler CloseConversation
+	put /conversations/:id/close (CloseConversationRequest) returns (CommResponse)
+
+	@doc "发送消息（同步模式，MVP 阶段）"
+	@handler SendMessage
+	post /conversations/:convId/messages (SendMessageRequest) returns (SendMessageResponse)
+
+	@doc "获取消息历史"
+	@handler ListMessage
+	get /conversations/:convId/messages (ListMessageRequest) returns (MessageListResponse)
+}

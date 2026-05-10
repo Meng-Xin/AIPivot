@@ -1,0 +1,55 @@
+syntax = "v1"
+
+info (
+	title:   "基础设施接口"
+	desc:    "健康检查、就绪检查、指标采集、连通性测试"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+// HealthResponse 健康检查响应
+type HealthResponse {
+	Status string `json:"status,example=UP"` // 服务健康状态：UP / DOWN
+}
+
+// DependencyStatus 依赖组件状态
+type DependencyStatus {
+	Name  string `json:"name,example=mysql"`       // 依赖名称，如 mysql、redis
+	Ready bool   `json:"ready,example=true"`       // 是否就绪
+	Error string `json:"error,optional,example="` // 错误信息，就绪时为空
+}
+
+// ReadyResponse 就绪检查响应
+type ReadyResponse {
+	Status       string             `json:"status,example=READY"` // 整体就绪状态：READY / NOT_READY
+	Dependencies []DependencyStatus `json:"dependencies"`         // 各依赖组件状态列表
+}
+
+// PingResponse 连通性测试响应
+type PingResponse {
+	Message   string `json:"message,example=pong"`                                  // 固定返回 "pong"
+	TraceId   string `json:"traceId,example=4bf92f3577b34da6a3ce929d0e0e4736"`    // 链路追踪 ID
+	RequestId string `json:"requestId,example=req-a1b2c3d4"`                      // 请求唯一标识
+}
+
+@server (
+	group: infra
+	tags:  "基础设施"
+)
+service aipivot-api {
+	@doc "健康检查 - 返回服务存活状态，供 K8s livenessProbe 使用"
+	@handler HealthHandler
+	get /healthz returns (HealthResponse)
+
+	@doc "就绪检查 - 返回服务及依赖组件就绪状态，供 K8s readinessProbe 使用"
+	@handler ReadyHandler
+	get /readyz returns (ReadyResponse)
+
+	@doc "指标采集 - 返回 Prometheus 格式的监控指标"
+	@handler MetricsHandler
+	get /metrics
+
+	@doc "连通性测试 - 返回 pong 及请求追踪信息"
+	@handler PingHandler
+	get /v1/ping returns (PingResponse)
+}

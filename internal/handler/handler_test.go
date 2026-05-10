@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	infrahandler "aipivot/internal/handler/infra"
 	"aipivot/internal/infra"
 	"aipivot/internal/observability"
 	"aipivot/internal/svc"
@@ -21,7 +22,7 @@ func TestHealthHandlerReturnsOK(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 
-	HealthHandler(&svc.ServiceContext{}).ServeHTTP(rec, req)
+	infrahandler.HealthHandler(&svc.ServiceContext{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
@@ -48,7 +49,7 @@ func TestReadyHandlerReturnsOKWhenDependenciesPass(t *testing.T) {
 		},
 	}
 
-	ReadyHandler(svcCtx).ServeHTTP(rec, req)
+	infrahandler.ReadyHandler(svcCtx).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
@@ -67,7 +68,7 @@ func TestReadyHandlerReturnsUnavailableWhenDependencyFails(t *testing.T) {
 		},
 	}
 
-	ReadyHandler(svcCtx).ServeHTTP(rec, req)
+	infrahandler.ReadyHandler(svcCtx).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d", rec.Code)
@@ -82,7 +83,7 @@ func TestPingHandlerReturnsPong(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/ping", nil).WithContext(ctx)
 	rec := httptest.NewRecorder()
 
-	PingHandler(&svc.ServiceContext{}).ServeHTTP(rec, req)
+	infrahandler.PingHandler(&svc.ServiceContext{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
@@ -95,7 +96,7 @@ func TestPingHandlerReturnsPong(t *testing.T) {
 	if resp.Message != "pong" {
 		t.Fatalf("expected pong, got %q", resp.Message)
 	}
-	if resp.RequestID != "request-123" {
-		t.Fatalf("expected request-123, got %q", resp.RequestID)
+	if resp.RequestId != "request-123" {
+		t.Fatalf("expected request-123, got %q", resp.RequestId)
 	}
 }

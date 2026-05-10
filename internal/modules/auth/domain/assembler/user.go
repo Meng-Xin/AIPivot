@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth/domain/model"
-	authtypes "aipivot/internal/modules/auth/types"
 	"aipivot/internal/shared/po"
+	"aipivot/internal/types"
 )
 
 // ① Request → Domain Model
-func LoginRequestToModelUser(req *authtypes.LoginRequest) *model.UserAuth {
+func LoginRequestToModelUser(req *types.LoginRequest) *model.UserAuth {
 	return &model.UserAuth{
 		Email:    req.Email,
 		Password: req.Password,
@@ -17,7 +17,7 @@ func LoginRequestToModelUser(req *authtypes.LoginRequest) *model.UserAuth {
 }
 
 // ① Request → Domain Model
-func RegisterRequestToModelUser(req *authtypes.RegisterRequest) *model.UserAuth {
+func RegisterRequestToModelUser(req *types.RegisterRequest) *model.UserAuth {
 	return &model.UserAuth{
 		NickName: req.NickName,
 		Email:    req.Email,
@@ -38,12 +38,12 @@ func ModelUserToUserPo(m *model.UserAuth, tenantID int64, encryptedPwd string) *
 }
 
 // ③ PO → ShowType
-func UserPoToShowUser(u *po.User) authtypes.ShowUser {
+func UserPoToShowUser(u *po.User) types.ShowUser {
 	var lastLogin int64
 	if u.LastLogin != nil {
 		lastLogin = u.LastLogin.Unix()
 	}
-	return authtypes.ShowUser{
+	return types.ShowUser{
 		ID:        u.ID,
 		UUID:      u.UUID,
 		TenantID:  u.TenantID,
@@ -57,8 +57,8 @@ func UserPoToShowUser(u *po.User) authtypes.ShowUser {
 }
 
 // ③ PO → LoginResponse token data
-func UserPoToLoginData(u *po.User, token string) authtypes.LoginData {
-	return authtypes.LoginData{
+func UserPoToLoginData(u *po.User, token string) types.LoginData {
+	return types.LoginData{
 		Token:    token,
 		ExpireAt: time.Now().Add(24 * time.Hour).Unix(),
 		User:     UserPoToShowUser(u),

@@ -1,0 +1,15 @@
+syntax = "v1"
+
+info (
+	title:   "AIPivot 通用类型"
+	desc:    "所有模块共用的通用响应与基础类型定义"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+// CommResponse 通用响应结构体
+type CommResponse {
+	Code      int32  `json:"code,example=0"`                  // 业务状态码，0 表示成功
+	Msg       string `json:"msg,example=OK"`                  // 响应消息
+	Timestamp int64  `json:"timestamp,example=1715300000000"` // 响应时间戳（Unix 毫秒）
+}

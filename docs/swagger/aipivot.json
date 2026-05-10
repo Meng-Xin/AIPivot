@@ -1,0 +1,586 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "AIPivot 多租户 AI 能力中台接口文档",
+    "title": "AIPivot API",
+    "version": "1.0.0"
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "认证"
+        ],
+        "summary": "用户登录 - 使用邮箱和密码登录，返回 JWT 令牌及用户信息",
+        "operationId": "authLoginHandler",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "基础设施"
+        ],
+        "summary": "健康检查 - 返回服务存活状态，供 K8s livenessProbe 使用",
+        "operationId": "infraHealthHandler",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "基础设施"
+        ],
+        "summary": "指标采集 - 返回 Prometheus 格式的监控指标",
+        "operationId": "infraMetricsHandler",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {}
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "基础设施"
+        ],
+        "summary": "就绪检查 - 返回服务及依赖组件就绪状态，供 K8s readinessProbe 使用",
+        "operationId": "infraReadyHandler",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ReadyResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/ping": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "基础设施"
+        ],
+        "summary": "连通性测试 - 返回 pong 及请求追踪信息",
+        "operationId": "infraPingHandler",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/PingResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CommResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp"
+      ],
+      "properties": {
+        "code": {
+          "description": "业务状态码，0 表示成功",
+          "type": "integer",
+          "example": 0
+        },
+        "msg": {
+          "description": "响应消息",
+          "type": "string",
+          "example": "OK"
+        },
+        "timestamp": {
+          "description": "响应时间戳（Unix 毫秒）",
+          "type": "integer",
+          "example": 1715300000000
+        }
+      }
+    },
+    "DependencyStatus": {
+      "type": "object",
+      "required": [
+        "name",
+        "ready"
+      ],
+      "properties": {
+        "error": {
+          "description": "错误信息，就绪时为空",
+          "type": "string",
+          "example": ""
+        },
+        "name": {
+          "description": "依赖名称，如 mysql、redis",
+          "type": "string",
+          "example": "mysql"
+        },
+        "ready": {
+          "description": "是否就绪",
+          "type": "boolean",
+          "example": true
+        }
+      }
+    },
+    "HealthResponse": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "description": "服务健康状态：UP / DOWN",
+          "type": "string",
+          "example": "UP"
+        }
+      }
+    },
+    "LoginData": {
+      "type": "object",
+      "required": [
+        "token",
+        "expireAt",
+        "user"
+      ],
+      "properties": {
+        "expireAt": {
+          "description": "令牌过期时间（Unix 毫秒）",
+          "type": "integer",
+          "example": 1715386400000
+        },
+        "token": {
+          "description": "JWT 访问令牌",
+          "type": "string",
+          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "user": {
+          "description": "当前登录用户信息",
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "tenantId",
+            "email",
+            "nickName",
+            "role",
+            "status",
+            "lastLogin",
+            "createdAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "description": "创建时间（Unix 毫秒）",
+              "type": "integer",
+              "example": 1715200000000
+            },
+            "email": {
+              "description": "邮箱",
+              "type": "string",
+              "example": "user@example.com"
+            },
+            "id": {
+              "description": "用户 ID",
+              "type": "integer",
+              "example": 1
+            },
+            "lastLogin": {
+              "description": "最近登录时间（Unix 毫秒）",
+              "type": "integer",
+              "example": 1715300000000
+            },
+            "nickName": {
+              "description": "昵称",
+              "type": "string",
+              "example": "张三"
+            },
+            "role": {
+              "description": "角色：admin / member",
+              "type": "string",
+              "enum": [
+                "admin",
+                "member"
+              ],
+              "example": "member"
+            },
+            "status": {
+              "description": "状态：active / disabled",
+              "type": "string",
+              "enum": [
+                "active",
+                "disabled"
+              ],
+              "example": "active"
+            },
+            "tenantId": {
+              "description": "所属租户 ID",
+              "type": "integer",
+              "example": 100
+            },
+            "uuid": {
+              "description": "用户唯一标识",
+              "type": "string",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          },
+          "$ref": "#/definitions/ShowUser"
+        }
+      }
+    },
+    "LoginRequest": {
+      "type": "object",
+      "required": [
+        "email",
+        "password"
+      ],
+      "properties": {
+        "email": {
+          "description": "登录邮箱",
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "password": {
+          "description": "登录密码",
+          "type": "string",
+          "example": "P@ssw0rd123"
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "description": "业务状态码，0 表示成功",
+          "type": "integer",
+          "example": 0
+        },
+        "data": {
+          "description": "登录数据",
+          "type": "object",
+          "required": [
+            "token",
+            "expireAt",
+            "user"
+          ],
+          "properties": {
+            "expireAt": {
+              "description": "令牌过期时间（Unix 毫秒）",
+              "type": "integer",
+              "example": 1715386400000
+            },
+            "token": {
+              "description": "JWT 访问令牌",
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            },
+            "user": {
+              "description": "当前登录用户信息",
+              "type": "object",
+              "required": [
+                "id",
+                "uuid",
+                "tenantId",
+                "email",
+                "nickName",
+                "role",
+                "status",
+                "lastLogin",
+                "createdAt"
+              ],
+              "properties": {
+                "createdAt": {
+                  "description": "创建时间（Unix 毫秒）",
+                  "type": "integer",
+                  "example": 1715200000000
+                },
+                "email": {
+                  "description": "邮箱",
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "id": {
+                  "description": "用户 ID",
+                  "type": "integer",
+                  "example": 1
+                },
+                "lastLogin": {
+                  "description": "最近登录时间（Unix 毫秒）",
+                  "type": "integer",
+                  "example": 1715300000000
+                },
+                "nickName": {
+                  "description": "昵称",
+                  "type": "string",
+                  "example": "张三"
+                },
+                "role": {
+                  "description": "角色：admin / member",
+                  "type": "string",
+                  "enum": [
+                    "admin",
+                    "member"
+                  ],
+                  "example": "member"
+                },
+                "status": {
+                  "description": "状态：active / disabled",
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "disabled"
+                  ],
+                  "example": "active"
+                },
+                "tenantId": {
+                  "description": "所属租户 ID",
+                  "type": "integer",
+                  "example": 100
+                },
+                "uuid": {
+                  "description": "用户唯一标识",
+                  "type": "string",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+              },
+              "$ref": "#/definitions/ShowUser"
+            }
+          },
+          "$ref": "#/definitions/LoginData"
+        },
+        "msg": {
+          "description": "响应消息",
+          "type": "string",
+          "example": "OK"
+        },
+        "timestamp": {
+          "description": "响应时间戳（Unix 毫秒）",
+          "type": "integer",
+          "example": 1715300000000
+        }
+      }
+    },
+    "PingResponse": {
+      "type": "object",
+      "required": [
+        "message",
+        "traceId",
+        "requestId"
+      ],
+      "properties": {
+        "message": {
+          "description": "固定返回 \"pong\"",
+          "type": "string",
+          "example": "pong"
+        },
+        "requestId": {
+          "description": "请求唯一标识",
+          "type": "string",
+          "example": "req-a1b2c3d4"
+        },
+        "traceId": {
+          "description": "链路追踪 ID",
+          "type": "string",
+          "example": "4bf92f3577b34da6a3ce929d0e0e4736"
+        }
+      }
+    },
+    "ReadyResponse": {
+      "type": "object",
+      "required": [
+        "status",
+        "dependencies"
+      ],
+      "properties": {
+        "dependencies": {
+          "description": "各依赖组件状态列表",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DependencyStatus"
+          }
+        },
+        "status": {
+          "description": "整体就绪状态：READY / NOT_READY",
+          "type": "string",
+          "example": "READY"
+        }
+      }
+    },
+    "RegisterRequest": {
+      "type": "object",
+      "required": [
+        "nick_name",
+        "email",
+        "password"
+      ],
+      "properties": {
+        "email": {
+          "description": "注册邮箱",
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "nick_name": {
+          "description": "用户昵称",
+          "type": "string",
+          "example": "张三"
+        },
+        "password": {
+          "description": "注册密码",
+          "type": "string",
+          "example": "P@ssw0rd123"
+        }
+      }
+    },
+    "ShowUser": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "tenantId",
+        "email",
+        "nickName",
+        "role",
+        "status",
+        "lastLogin",
+        "createdAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "description": "创建时间（Unix 毫秒）",
+          "type": "integer",
+          "example": 1715200000000
+        },
+        "email": {
+          "description": "邮箱",
+          "type": "string",
+          "example": "user@example.com"
+        },
+        "id": {
+          "description": "用户 ID",
+          "type": "integer",
+          "example": 1
+        },
+        "lastLogin": {
+          "description": "最近登录时间（Unix 毫秒）",
+          "type": "integer",
+          "example": 1715300000000
+        },
+        "nickName": {
+          "description": "昵称",
+          "type": "string",
+          "example": "张三"
+        },
+        "role": {
+          "description": "角色：admin / member",
+          "type": "string",
+          "enum": [
+            "admin",
+            "member"
+          ],
+          "example": "member"
+        },
+        "status": {
+          "description": "状态：active / disabled",
+          "type": "string",
+          "enum": [
+            "active",
+            "disabled"
+          ],
+          "example": "active"
+        },
+        "tenantId": {
+          "description": "所属租户 ID",
+          "type": "integer",
+          "example": 100
+        },
+        "uuid": {
+          "description": "用户唯一标识",
+          "type": "string",
+          "example": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      }
+    }
+  },
+  "x-date": "2026-05-10 09:52:26",
+  "x-description": "This is a goctl generated swagger file.",
+  "x-github": "https://github.com/zeromicro/go-zero",
+  "x-go-zero-doc": "https://go-zero.dev/",
+  "x-goctl-version": "1.10.1"
+}

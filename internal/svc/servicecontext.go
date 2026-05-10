@@ -3,12 +3,19 @@ package svc
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"aipivot/internal/config"
 	"aipivot/internal/infra"
-	"aipivot/internal/modules/auth/repo"
-	"aipivot/internal/modules/auth/repo/dao"
+	"aipivot/internal/middleware"
+	authRepo "aipivot/internal/modules/auth/repo"
+	authDao "aipivot/internal/modules/auth/repo/dao"
+	chatRepo "aipivot/internal/modules/chat/repo"
+	chatDao "aipivot/internal/modules/chat/repo/dao"
+	kbRepo "aipivot/internal/modules/knowledge/repo"
+	kbDao "aipivot/internal/modules/knowledge/repo/dao"
 	"aipivot/internal/observability"
+	"aipivot/internal/shared/query"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
@@ -23,9 +30,20 @@ type ServiceContext struct {
 	HealthChecks []infra.DependencyCheck
 	Shutdown     func(context.Context) error
 
-	// Repo 接口（按 spec 规范使用接口类型，便于 Mock 测试）
-	UserRepo   repo.UserRepository
-	TenantRepo repo.TenantRepository
+	// 路由级中间件（goctl 生成的 routes.go 通过 serverCtx.AuthMiddleware 引用）
+	AuthMiddleware func(http.HandlerFunc) http.HandlerFunc
+
+	// Auth Repo
+	UserRepo   authRepo.UserRepository
+	TenantRepo authRepo.TenantRepository
+
+	// Knowledge Repo
+	KnowledgeBaseRepo kbRepo.KnowledgeBaseRepository
+	DocumentRepo      kbRepo.DocumentRepository
+
+	// Chat Repo
+	ConversationRepo chatRepo.ConversationRepository
+	MessageRepo      chatRepo.MessageRepository
 }
 
 func NewServiceContext(c config.Config) (*ServiceContext, error) {
@@ -48,17 +66,40 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	redisClient := infra.NewRedis(c.Redis)
 	metrics := observability.NewMetrics(prometheus.NewRegistry())
 
-	// DB → DAO → Repo(接口) 组装链路
-	userDao := dao.NewUserDao(db)
-	tenantDao := dao.NewTenantDao(db)
+	// DB → Query → DAO → Repo(接口) 组装链路
+	q := query.Use(db)
+
+	// Auth DAOs
+	userDao := authDao.NewUserDao(q)
+	tenantDao := authDao.NewTenantDao(q)
+
+	// Knowledge DAOs
+	knowledgeBaseDao := kbDao.NewKnowledgeBaseDao(q)
+	documentDao := kbDao.NewDocumentDao(q)
+
+	// Chat DAOs
+	conversationDao := chatDao.NewConversationDao(q)
+	messageDao := chatDao.NewMessageDao(q)
 
 	return &ServiceContext{
-		Config:     c,
-		DB:         db,
-		Redis:      redisClient,
-		Metrics:    metrics,
-		UserRepo:   repo.NewUserRepo(userDao),
-		TenantRepo: repo.NewTenantRepo(tenantDao),
+		Config:         c,
+		DB:             db,
+		Redis:          redisClient,
+		Metrics:        metrics,
+		AuthMiddleware: middleware.NewAuthMiddleware(c.Auth).Handle,
+
+		// Auth
+		UserRepo:   authRepo.NewUserRepo(userDao),
+		TenantRepo: authRepo.NewTenantRepo(tenantDao),
+
+		// Knowledge
+		KnowledgeBaseRepo: kbRepo.NewKnowledgeBaseRepo(knowledgeBaseDao),
+		DocumentRepo:      kbRepo.NewDocumentRepo(documentDao),
+
+		// Chat
+		ConversationRepo: chatRepo.NewConversationRepo(conversationDao),
+		MessageRepo:      chatRepo.NewMessageRepo(messageDao),
+
 		HealthChecks: []infra.DependencyCheck{
 			infra.CheckPostgres(db),
 			infra.CheckRedis(redisClient),

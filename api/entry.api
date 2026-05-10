@@ -1,0 +1,23 @@
+syntax = "v1"
+
+info (
+	title:          "AIPivot API"
+	description:    "AIPivot 多租户 AI 能力中台接口文档"
+	version:        "1.0.0"
+	author:         "AIPivot"
+	schemes:        "http,https"
+	host:           "localhost:8080"
+	basePath:       "/"
+	consumes:       "application/json"
+	produces:       "application/json"
+	useDefinitions: true
+)
+
+import (
+	"comm.api"
+	"infra.api"
+	"auth.api"
+	"knowledge.api"
+	"chat.api"
+)
+
