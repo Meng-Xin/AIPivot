@@ -6,17 +6,47 @@ package handler
 import (
 	"net/http"
 
+	apikey "aipivot/internal/handler/apikey"
 	auth "aipivot/internal/handler/auth"
 	chat "aipivot/internal/handler/chat"
 	infra "aipivot/internal/handler/infra"
 	knowledge "aipivot/internal/handler/knowledge"
 	models "aipivot/internal/handler/models"
+	open "aipivot/internal/handler/open"
+	webhook "aipivot/internal/handler/webhook"
 	"aipivot/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 创建 API Key
+					Method:  http.MethodPost,
+					Path:    "/api-keys",
+					Handler: apikey.CreateApiKeyHandler(serverCtx),
+				},
+				{
+					// 获取 API Key 列表
+					Method:  http.MethodGet,
+					Path:    "/api-keys",
+					Handler: apikey.ListApiKeyHandler(serverCtx),
+				},
+				{
+					// 吊销 API Key
+					Method:  http.MethodPut,
+					Path:    "/api-keys/:id/revoke",
+					Handler: apikey.RevokeApiKeyHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
 	server.AddRoutes(
 		[]rest.Route{
 			{
@@ -187,6 +217,73 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodGet,
 					Path:    "/models",
 					Handler: models.ListModelsHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	// Open API 路由组 — 使用 API Key 中间件认证（非 JWT）
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.ApiKeyMiddleware},
+			[]rest.Route{
+				{
+					// Chat Completion（同步）— OpenAI 兼容格式
+					Method:  http.MethodPost,
+					Path:    "/chat/completions",
+					Handler: open.ChatCompletionHandler(serverCtx),
+				},
+				{
+					// Chat Completion（SSE 流式）— 手写路由
+					Method:  http.MethodPost,
+					Path:    "/chat/completions/stream",
+					Handler: open.ChatCompletionStreamHandler(serverCtx),
+				},
+				{
+					// Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复
+					Method:  http.MethodPost,
+					Path:    "/webhook/:webhookId/inbound",
+					Handler: open.WebhookInboundHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/open"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 创建 Webhook
+					Method:  http.MethodPost,
+					Path:    "/webhooks",
+					Handler: webhook.CreateWebhookHandler(serverCtx),
+				},
+				{
+					// 获取 Webhook 列表
+					Method:  http.MethodGet,
+					Path:    "/webhooks",
+					Handler: webhook.ListWebhookHandler(serverCtx),
+				},
+				{
+					// 获取 Webhook 详情
+					Method:  http.MethodGet,
+					Path:    "/webhooks/:id",
+					Handler: webhook.GetWebhookHandler(serverCtx),
+				},
+				{
+					// 更新 Webhook
+					Method:  http.MethodPut,
+					Path:    "/webhooks/:id",
+					Handler: webhook.UpdateWebhookHandler(serverCtx),
+				},
+				{
+					// 删除 Webhook
+					Method:  http.MethodDelete,
+					Path:    "/webhooks/:id",
+					Handler: webhook.DeleteWebhookHandler(serverCtx),
 				},
 			}...,
 		),

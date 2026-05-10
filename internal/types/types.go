@@ -3,13 +3,45 @@
 
 package types
 
-type CloseConversationRequest struct {
-	ID int64 `path:"id"`
+type ApiKeyListResponse struct {
+	Code      int32        `json:"code"`
+	Msg       string       `json:"msg"`
+	Timestamp int64        `json:"timestamp"`
+	Data      []ShowApiKey `json:"data"`
 }
 
-type EscalateConversationRequest struct {
-	ID     int64  `path:"id"`
-	Reason string `json:"reason,optional"` // 转接原因（可选）
+type ChatCompletionChoice struct {
+	Index        int             `json:"index"`
+	Message      OpenChatMessage `json:"message"`
+	FinishReason string          `json:"finishReason"`
+}
+
+type ChatCompletionRequest struct {
+	Model           string            `json:"model,optional"`           // 模型标识（空则用系统默认）
+	Messages        []OpenChatMessage `json:"messages"`                 // 对话消息列表
+	KnowledgeBaseID int64             `json:"knowledgeBaseId,optional"` // 关联知识库 ID（启用 RAG）
+	MaxTokens       int               `json:"maxTokens,optional"`       // 最大生成 token 数
+	Temperature     float64           `json:"temperature,optional"`     // 温度参数 [0,2]
+	Stream          bool              `json:"stream,optional"`          // 是否流式返回（true 时走 SSE）
+}
+
+type ChatCompletionResponse struct {
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Model   string                 `json:"model"`
+	Choices []ChatCompletionChoice `json:"choices"`
+	Usage   ChatCompletionUsage    `json:"usage"`
+	Sources []string               `json:"sources,omitempty"` // RAG 命中的知识来源
+}
+
+type ChatCompletionUsage struct {
+	PromptTokens     int `json:"promptTokens"`
+	CompletionTokens int `json:"completionTokens"`
+	TotalTokens      int `json:"totalTokens"`
+}
+
+type CloseConversationRequest struct {
+	ID int64 `path:"id"`
 }
 
 type CommResponse struct {
@@ -37,16 +69,47 @@ type ConversationListResponse struct {
 	Data      ConversationListData `json:"data"`
 }
 
+type CreateApiKeyData struct {
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Key       string   `json:"key"`       // 原始 API Key（仅创建时返回）
+	KeyPrefix string   `json:"keyPrefix"` // 密钥前缀
+	Scopes    []string `json:"scopes"`
+}
+
+type CreateApiKeyRequest struct {
+	Name   string   `json:"name"`            // 密钥名称
+	Scopes []string `json:"scopes,optional"` // 权限范围（默认 ["chat"]）
+}
+
+type CreateApiKeyResponse struct {
+	Code      int32            `json:"code"`
+	Msg       string           `json:"msg"`
+	Timestamp int64            `json:"timestamp"`
+	Data      CreateApiKeyData `json:"data"`
+}
+
 type CreateConversationRequest struct {
 	KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"` // 关联知识库 ID
 	Title           string `json:"title,optional"`           // 会话标题
 	Model           string `json:"model,optional"`           // 指定聊天模型（空则用默认模型）
+	Channel         string `json:"channel,default=web"`      // 接入渠道: web / api / webhook
 }
 
 type CreateKnowledgeBaseRequest struct {
 	Name        string `json:"name"`                                          // 知识库名称
 	Description string `json:"description,optional"`                          // 知识库描述
 	Model       string `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+}
+
+type CreateWebhookRequest struct {
+	Name        string   `json:"name"`                        // Webhook 名称
+	URL         string   `json:"url"`                         // 回调 URL
+	Secret      string   `json:"secret,optional"`             // 签名密钥（可选）
+	Events      []string `json:"events,optional"`             // 订阅事件类型列表
+	ChannelType string   `json:"channelType,default=webhook"` // 渠道类型
+	RetryCount  int      `json:"retryCount,default=3"`        // 重试次数
+	TimeoutMs   int      `json:"timeoutMs,default=5000"`      // 超时毫秒
 }
 
 type DeleteDocumentRequest struct {
@@ -56,6 +119,10 @@ type DeleteDocumentRequest struct {
 
 type DeleteKnowledgeBaseRequest struct {
 	ID int64 `path:"id"` // 知识库 ID
+}
+
+type DeleteWebhookRequest struct {
+	ID int64 `path:"id"`
 }
 
 type DependencyStatus struct {
@@ -83,12 +150,21 @@ type DocumentListResponse struct {
 	Data      DocumentListData `json:"data"`
 }
 
+type EscalateConversationRequest struct {
+	ID     int64  `path:"id"`
+	Reason string `json:"reason,optional"` // 转接原因（可选）
+}
+
 type GetConversationRequest struct {
 	ID int64 `path:"id"`
 }
 
 type GetKnowledgeBaseRequest struct {
 	ID int64 `path:"id"` // 知识库 ID
+}
+
+type GetWebhookRequest struct {
+	ID int64 `path:"id"`
 }
 
 type HealthResponse struct {
@@ -181,6 +257,11 @@ type ModelListResponse struct {
 	Data      ModelListData `json:"data"`
 }
 
+type OpenChatMessage struct {
+	Role    string `json:"role"`    // 角色: system / user / assistant
+	Content string `json:"content"` // 消息内容
+}
+
 type PingResponse struct {
 	Message   string `json:"message,example=pong"`                             // 固定返回 "pong"
 	TraceId   string `json:"traceId,example=4bf92f3577b34da6a3ce929d0e0e4736"` // 链路追踪 ID
@@ -198,6 +279,10 @@ type RegisterRequest struct {
 	Password string `json:"password,example=P@ssw0rd123"`   // 注册密码
 }
 
+type RevokeApiKeyRequest struct {
+	ID int64 `path:"id"`
+}
+
 type SendMessageRequest struct {
 	ConversationID int64  `path:"convId"`                   // 会话 ID
 	Content        string `json:"content"`                  // 消息内容
@@ -209,6 +294,17 @@ type SendMessageResponse struct {
 	Msg       string      `json:"msg"`
 	Timestamp int64       `json:"timestamp"`
 	Data      ShowMessage `json:"data"`
+}
+
+type ShowApiKey struct {
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	KeyPrefix string   `json:"keyPrefix"`
+	Scopes    []string `json:"scopes"`
+	Status    string   `json:"status"`
+	LastUsed  int64    `json:"lastUsed,omitempty"`
+	ExpiresAt int64    `json:"expiresAt,omitempty"`
+	CreatedAt int64    `json:"createdAt"`
 }
 
 type ShowConversation struct {
@@ -285,12 +381,70 @@ type ShowUser struct {
 	CreatedAt int64  `json:"createdAt,example=1715200000000"`                   // 创建时间（Unix 毫秒）
 }
 
+type ShowWebhook struct {
+	ID          int64    `json:"id"`
+	UUID        string   `json:"uuid"`
+	Name        string   `json:"name"`
+	URL         string   `json:"url"`
+	Events      []string `json:"events"`
+	ChannelType string   `json:"channelType"`
+	Status      string   `json:"status"`
+	RetryCount  int      `json:"retryCount"`
+	TimeoutMs   int      `json:"timeoutMs"`
+	LastError   string   `json:"lastError,omitempty"`
+	LastTrigger int64    `json:"lastTrigger,omitempty"`
+	CreatedAt   int64    `json:"createdAt"`
+	UpdatedAt   int64    `json:"updatedAt"`
+}
+
 type UpdateKnowledgeBaseRequest struct {
 	ID          int64  `path:"id"`                   // 知识库 ID
 	Name        string `json:"name,optional"`        // 知识库名称
 	Description string `json:"description,optional"` // 知识库描述
 }
 
+type UpdateWebhookRequest struct {
+	ID         int64    `path:"id"`
+	Name       string   `json:"name,optional"`
+	URL        string   `json:"url,optional"`
+	Secret     string   `json:"secret,optional"`
+	Events     []string `json:"events,optional"`
+	RetryCount int      `json:"retryCount,optional"`
+	TimeoutMs  int      `json:"timeoutMs,optional"`
+	Status     string   `json:"status,optional"` // active / disabled
+}
+
 type UploadDocumentRequest struct {
 	KnowledgeBaseID int64 `path:"kbId"` // 知识库 ID
+}
+
+type WebhookDetailResponse struct {
+	Code      int32       `json:"code"`
+	Msg       string      `json:"msg"`
+	Timestamp int64       `json:"timestamp"`
+	Data      ShowWebhook `json:"data"`
+}
+
+type WebhookInboundRequest struct {
+	WebhookID      int64  `path:"webhookId"`                // Webhook 配置 ID
+	ExternalUserID string `json:"externalUserId"`           // 外部平台用户标识
+	Content        string `json:"content"`                  // 消息内容
+	ContentType    string `json:"contentType,default=text"` // 内容类型
+	ConversationID int64  `json:"conversationId,optional"`  // 会话 ID（续接已有会话）
+}
+
+type WebhookInboundResponse struct {
+	Code           int32  `json:"code"`
+	Msg            string `json:"msg"`
+	Timestamp      int64  `json:"timestamp"`
+	ConversationID int64  `json:"conversationId"` // 使用或新建的会话 ID
+	MessageID      string `json:"messageId"`      // AI 回复消息 UUID
+	Content        string `json:"content"`        // AI 回复内容
+}
+
+type WebhookListResponse struct {
+	Code      int32         `json:"code"`
+	Msg       string        `json:"msg"`
+	Timestamp int64         `json:"timestamp"`
+	Data      []ShowWebhook `json:"data"`
 }

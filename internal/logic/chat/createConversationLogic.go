@@ -37,6 +37,11 @@ func (l *CreateConversationLogic) CreateConversation(req *types.CreateConversati
 	tenantID := auth.TenantIDFromContext(l.ctx)
 	userID := auth.UserIDFromContext(l.ctx)
 
+	ch := req.Channel
+	if ch == "" {
+		ch = "web"
+	}
+
 	conv := &po.Conversation{
 		UUID:     uuid.New().String(),
 		TenantID: tenantID,
@@ -44,7 +49,7 @@ func (l *CreateConversationLogic) CreateConversation(req *types.CreateConversati
 		Title:    req.Title,
 		Model:    req.Model,
 		Status:   "active",
-		Channel:  "web",
+		Channel:  ch,
 	}
 
 	if req.KnowledgeBaseID > 0 {

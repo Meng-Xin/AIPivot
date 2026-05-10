@@ -20,5 +20,6 @@ import (
 	"knowledge.api"
 	"chat.api"
 	"models.api"
+	"open.api"
 )
 

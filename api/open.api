@@ -1,0 +1,271 @@
+syntax = "v1"
+
+info (
+	title:   "Open API 接口"
+	desc:    "面向外部系统的开放接口，通过 API Key 认证（X-API-Key 请求头）"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+// ========== Chat Completions（OpenAI 兼容风格） ==========
+
+type (
+	// OpenChatMessage Chat Completion 请求中的消息对象
+	OpenChatMessage {
+		Role    string `json:"role"`    // 角色: system / user / assistant
+		Content string `json:"content"` // 消息内容
+	}
+
+	// ChatCompletionRequest OpenAI 兼容的 Chat Completion 请求
+	ChatCompletionRequest {
+		Model           string            `json:"model,optional"`            // 模型标识（空则用系统默认）
+		Messages        []OpenChatMessage `json:"messages"`                  // 对话消息列表
+		KnowledgeBaseID int64             `json:"knowledgeBaseId,optional"`  // 关联知识库 ID（启用 RAG）
+		MaxTokens       int               `json:"maxTokens,optional"`        // 最大生成 token 数
+		Temperature     float64           `json:"temperature,optional"`      // 温度参数 [0,2]
+		Stream          bool              `json:"stream,optional"`           // 是否流式返回（true 时走 SSE）
+	}
+
+	// ChatCompletionChoice Chat Completion 响应中的选项
+	ChatCompletionChoice {
+		Index        int             `json:"index"`
+		Message      OpenChatMessage `json:"message"`
+		FinishReason string          `json:"finishReason"`
+	}
+
+	// ChatCompletionUsage Token 使用统计
+	ChatCompletionUsage {
+		PromptTokens     int `json:"promptTokens"`
+		CompletionTokens int `json:"completionTokens"`
+		TotalTokens      int `json:"totalTokens"`
+	}
+
+	// ChatCompletionResponse Chat Completion 同步响应（OpenAI 兼容格式）
+	ChatCompletionResponse {
+		ID      string                 `json:"id"`
+		Object  string                 `json:"object"`
+		Model   string                 `json:"model"`
+		Choices []ChatCompletionChoice `json:"choices"`
+		Usage   ChatCompletionUsage    `json:"usage"`
+		Sources []string               `json:"sources,omitempty"` // RAG 命中的知识来源
+	}
+)
+
+// ========== Webhook 管理 ==========
+
+type (
+	// CreateWebhookRequest 创建 Webhook 请求
+	CreateWebhookRequest {
+		Name        string   `json:"name"`                         // Webhook 名称
+		URL         string   `json:"url"`                          // 回调 URL
+		Secret      string   `json:"secret,optional"`              // 签名密钥（可选）
+		Events      []string `json:"events,optional"`              // 订阅事件类型列表
+		ChannelType string   `json:"channelType,default=webhook"`  // 渠道类型
+		RetryCount  int      `json:"retryCount,default=3"`         // 重试次数
+		TimeoutMs   int      `json:"timeoutMs,default=5000"`       // 超时毫秒
+	}
+
+	// UpdateWebhookRequest 更新 Webhook 请求
+	UpdateWebhookRequest {
+		ID         int64    `path:"id"`
+		Name       string   `json:"name,optional"`
+		URL        string   `json:"url,optional"`
+		Secret     string   `json:"secret,optional"`
+		Events     []string `json:"events,optional"`
+		RetryCount int      `json:"retryCount,optional"`
+		TimeoutMs  int      `json:"timeoutMs,optional"`
+		Status     string   `json:"status,optional"` // active / disabled
+	}
+
+	// GetWebhookRequest 获取 Webhook 详情
+	GetWebhookRequest {
+		ID int64 `path:"id"`
+	}
+
+	// DeleteWebhookRequest 删除 Webhook
+	DeleteWebhookRequest {
+		ID int64 `path:"id"`
+	}
+
+	// ShowWebhook Webhook 展示对象
+	ShowWebhook {
+		ID          int64    `json:"id"`
+		UUID        string   `json:"uuid"`
+		Name        string   `json:"name"`
+		URL         string   `json:"url"`
+		Events      []string `json:"events"`
+		ChannelType string   `json:"channelType"`
+		Status      string   `json:"status"`
+		RetryCount  int      `json:"retryCount"`
+		TimeoutMs   int      `json:"timeoutMs"`
+		LastError   string   `json:"lastError,omitempty"`
+		LastTrigger int64    `json:"lastTrigger,omitempty"`
+		CreatedAt   int64    `json:"createdAt"`
+		UpdatedAt   int64    `json:"updatedAt"`
+	}
+
+	// WebhookListResponse Webhook 列表响应
+	WebhookListResponse {
+		Code      int32         `json:"code"`
+		Msg       string        `json:"msg"`
+		Timestamp int64         `json:"timestamp"`
+		Data      []ShowWebhook `json:"data"`
+	}
+
+	// WebhookDetailResponse Webhook 详情响应
+	WebhookDetailResponse {
+		Code      int32       `json:"code"`
+		Msg       string      `json:"msg"`
+		Timestamp int64       `json:"timestamp"`
+		Data      ShowWebhook `json:"data"`
+	}
+)
+
+// ========== Webhook 入站消息 ==========
+
+type (
+	// WebhookInboundRequest 外部平台推送的入站消息
+	WebhookInboundRequest {
+		WebhookID      int64  `path:"webhookId"`                    // Webhook 配置 ID
+		ExternalUserID string `json:"externalUserId"`               // 外部平台用户标识
+		Content        string `json:"content"`                      // 消息内容
+		ContentType    string `json:"contentType,default=text"`     // 内容类型
+		ConversationID int64  `json:"conversationId,optional"`      // 会话 ID（续接已有会话）
+	}
+
+	// WebhookInboundResponse 入站消息处理响应
+	WebhookInboundResponse {
+		Code           int32  `json:"code"`
+		Msg            string `json:"msg"`
+		Timestamp      int64  `json:"timestamp"`
+		ConversationID int64  `json:"conversationId"` // 使用或新建的会话 ID
+		MessageID      string `json:"messageId"`      // AI 回复消息 UUID
+		Content        string `json:"content"`         // AI 回复内容
+	}
+)
+
+// ========== API Key 管理 ==========
+
+type (
+	// CreateApiKeyRequest 创建 API Key 请求
+	CreateApiKeyRequest {
+		Name   string   `json:"name"`             // 密钥名称
+		Scopes []string `json:"scopes,optional"`  // 权限范围（默认 ["chat"]）
+	}
+
+	// CreateApiKeyData 创建 API Key 返回数据（含原始密钥，仅创建时展示一次）
+	CreateApiKeyData {
+		ID        int64    `json:"id"`
+		Name      string   `json:"name"`
+		Key       string   `json:"key"`       // 原始 API Key（仅创建时返回）
+		KeyPrefix string   `json:"keyPrefix"` // 密钥前缀
+		Scopes    []string `json:"scopes"`
+	}
+
+	// CreateApiKeyResponse 创建 API Key 响应
+	CreateApiKeyResponse {
+		Code      int32          `json:"code"`
+		Msg       string         `json:"msg"`
+		Timestamp int64          `json:"timestamp"`
+		Data      CreateApiKeyData `json:"data"`
+	}
+
+	// ShowApiKey API Key 展示对象（不含原始密钥）
+	ShowApiKey {
+		ID        int64    `json:"id"`
+		Name      string   `json:"name"`
+		KeyPrefix string   `json:"keyPrefix"`
+		Scopes    []string `json:"scopes"`
+		Status    string   `json:"status"`
+		LastUsed  int64    `json:"lastUsed,omitempty"`
+		ExpiresAt int64    `json:"expiresAt,omitempty"`
+		CreatedAt int64    `json:"createdAt"`
+	}
+
+	// ApiKeyListResponse API Key 列表响应
+	ApiKeyListResponse {
+		Code      int32        `json:"code"`
+		Msg       string       `json:"msg"`
+		Timestamp int64        `json:"timestamp"`
+		Data      []ShowApiKey `json:"data"`
+	}
+
+	// RevokeApiKeyRequest 吊销 API Key
+	RevokeApiKeyRequest {
+		ID int64 `path:"id"`
+	}
+)
+
+// Open API — API Key 认证（手写路由，使用 ApiKeyMiddleware）
+// 注意：goctl 不直接处理 ApiKeyMiddleware，路由需手动注册
+@server (
+	group:  open
+	prefix: /api/v1/open
+	tags:   "Open API"
+)
+service aipivot-api {
+	@doc "Chat Completion（同步）— OpenAI 兼容格式，通过 API Key 认证"
+	@handler ChatCompletion
+	post /chat/completions (ChatCompletionRequest) returns (ChatCompletionResponse)
+}
+
+// Webhook 入站 — API Key 认证
+@server (
+	group:  open
+	prefix: /api/v1/open
+	tags:   "Webhook 入站"
+)
+service aipivot-api {
+	@doc "Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复"
+	@handler WebhookInbound
+	post /webhook/:webhookId/inbound (WebhookInboundRequest) returns (WebhookInboundResponse)
+}
+
+// Webhook 管理 + API Key 管理 — JWT 认证
+@server (
+	group:      webhook
+	prefix:     /api/v1
+	tags:       "Webhook 管理"
+	middleware: AuthMiddleware
+)
+service aipivot-api {
+	@doc "创建 Webhook"
+	@handler CreateWebhook
+	post /webhooks (CreateWebhookRequest) returns (WebhookDetailResponse)
+
+	@doc "获取 Webhook 列表"
+	@handler ListWebhook
+	get /webhooks returns (WebhookListResponse)
+
+	@doc "获取 Webhook 详情"
+	@handler GetWebhook
+	get /webhooks/:id (GetWebhookRequest) returns (WebhookDetailResponse)
+
+	@doc "更新 Webhook"
+	@handler UpdateWebhook
+	put /webhooks/:id (UpdateWebhookRequest) returns (WebhookDetailResponse)
+
+	@doc "删除 Webhook"
+	@handler DeleteWebhook
+	delete /webhooks/:id (DeleteWebhookRequest) returns (CommResponse)
+}
+
+@server (
+	group:      apikey
+	prefix:     /api/v1
+	tags:       "API Key 管理"
+	middleware: AuthMiddleware
+)
+service aipivot-api {
+	@doc "创建 API Key"
+	@handler CreateApiKey
+	post /api-keys (CreateApiKeyRequest) returns (CreateApiKeyResponse)
+
+	@doc "获取 API Key 列表"
+	@handler ListApiKey
+	get /api-keys returns (ApiKeyListResponse)
+
+	@doc "吊销 API Key"
+	@handler RevokeApiKey
+	put /api-keys/:id/revoke (RevokeApiKeyRequest) returns (CommResponse)
+}

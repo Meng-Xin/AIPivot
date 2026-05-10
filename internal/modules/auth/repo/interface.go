@@ -17,3 +17,13 @@ type TenantRepository interface {
 	GetBySlug(ctx context.Context, slug string) (*po.Tenant, error)
 	GetByID(ctx context.Context, id int64) (*po.Tenant, error)
 }
+
+type ApiKeyRepository interface {
+	Create(ctx context.Context, key *po.ApiKey) error
+	GetByKeyHash(ctx context.Context, keyHash string) (*po.ApiKey, error)
+	GetByID(ctx context.Context, id int64) (*po.ApiKey, error)
+	GetListByTenant(ctx context.Context, tenantID int64) ([]*po.ApiKey, error)
+	UpdateLastUsed(ctx context.Context, id int64) error
+	Revoke(ctx context.Context, id int64) error
+	Delete(ctx context.Context, id int64) error
+}

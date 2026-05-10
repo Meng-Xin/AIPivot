@@ -26,6 +26,7 @@ func main() {
 		po.DocumentChunk{},
 		po.Conversation{},
 		po.Message{},
+		po.Webhook{},
 	)
 
 	g.Execute()

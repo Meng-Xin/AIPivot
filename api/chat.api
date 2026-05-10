@@ -10,9 +10,10 @@ info (
 type (
 	// CreateConversationRequest 创建会话请求
 	CreateConversationRequest {
-		KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"` // 关联知识库 ID
-		Title           string `json:"title,optional"`           // 会话标题
-		Model           string `json:"model,optional"`           // 指定聊天模型（空则用默认模型）
+		KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"`  // 关联知识库 ID
+		Title           string `json:"title,optional"`            // 会话标题
+		Model           string `json:"model,optional"`            // 指定聊天模型（空则用默认模型）
+		Channel         string `json:"channel,default=web"`       // 接入渠道: web / api / webhook
 	}
 
 	// ShowConversation 会话展示对象

@@ -25,6 +25,7 @@ var (
 	Message       *message
 	Tenant        *tenant
 	User          *user
+	Webhook       *webhook
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -37,6 +38,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Message = &Q.Message
 	Tenant = &Q.Tenant
 	User = &Q.User
+	Webhook = &Q.Webhook
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
@@ -50,6 +52,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Message:       newMessage(db, opts...),
 		Tenant:        newTenant(db, opts...),
 		User:          newUser(db, opts...),
+		Webhook:       newWebhook(db, opts...),
 	}
 }
 
@@ -64,6 +67,7 @@ type Query struct {
 	Message       message
 	Tenant        tenant
 	User          user
+	Webhook       webhook
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -79,6 +83,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Message:       q.Message.clone(db),
 		Tenant:        q.Tenant.clone(db),
 		User:          q.User.clone(db),
+		Webhook:       q.Webhook.clone(db),
 	}
 }
 
@@ -101,6 +106,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Message:       q.Message.replaceDB(db),
 		Tenant:        q.Tenant.replaceDB(db),
 		User:          q.User.replaceDB(db),
+		Webhook:       q.Webhook.replaceDB(db),
 	}
 }
 
@@ -113,6 +119,7 @@ type queryCtx struct {
 	Message       IMessageDo
 	Tenant        ITenantDo
 	User          IUserDo
+	Webhook       IWebhookDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -125,6 +132,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Message:       q.Message.WithContext(ctx),
 		Tenant:        q.Tenant.WithContext(ctx),
 		User:          q.User.WithContext(ctx),
+		Webhook:       q.Webhook.WithContext(ctx),
 	}
 }
 

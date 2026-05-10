@@ -12,6 +12,7 @@ import (
 	"aipivot/internal/modules/agent/tools"
 	authRepo "aipivot/internal/modules/auth/repo"
 	authDao "aipivot/internal/modules/auth/repo/dao"
+	"aipivot/internal/modules/channel/webhook"
 	chatRepo "aipivot/internal/modules/chat/repo"
 	chatDao "aipivot/internal/modules/chat/repo/dao"
 	kbRepo "aipivot/internal/modules/knowledge/repo"
@@ -35,12 +36,14 @@ type ServiceContext struct {
 	HealthChecks []infra.DependencyCheck
 	Shutdown     func(context.Context) error
 
-	// 路由级中间件（goctl 生成的 routes.go 通过 serverCtx.AuthMiddleware 引用）
-	AuthMiddleware func(http.HandlerFunc) http.HandlerFunc
+	// 路由级中间件
+	AuthMiddleware   func(http.HandlerFunc) http.HandlerFunc
+	ApiKeyMiddleware func(http.HandlerFunc) http.HandlerFunc // Open API 使用 API Key 认证
 
 	// Auth Repo
 	UserRepo   authRepo.UserRepository
 	TenantRepo authRepo.TenantRepository
+	ApiKeyRepo authRepo.ApiKeyRepository
 
 	// Knowledge Repo
 	KnowledgeBaseRepo kbRepo.KnowledgeBaseRepository
@@ -52,6 +55,10 @@ type ServiceContext struct {
 	// Chat Repo
 	ConversationRepo chatRepo.ConversationRepository
 	MessageRepo      chatRepo.MessageRepository
+
+	// Webhook
+	WebhookRepo     webhook.Repository
+	WebhookDelivery *webhook.DeliveryService
 
 	// LLM & RAG
 	LLMClient   *llm.Client
@@ -91,9 +98,17 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	documentDao := kbDao.NewDocumentDao(q)
 	documentChunkDao := kbDao.NewDocumentChunkDao(q, db)
 
+	// Auth: API Key DAO
+	apiKeyDao := authDao.NewApiKeyDao(q)
+	apiKeyRepo := authRepo.NewApiKeyRepo(apiKeyDao)
+
 	// Chat DAOs
 	conversationDao := chatDao.NewConversationDao(q)
 	messageDao := chatDao.NewMessageDao(q)
+
+	// Webhook DAO + Repo
+	webhookDao := webhook.NewWebhookDao(q, db)
+	webhookRepo := webhook.NewWebhookRepo(webhookDao)
 
 	// LLM Client (OpenAI-compatible, 支持 One API)
 	llmClient := llm.NewClient(c.LLM.BaseURL, c.LLM.APIKey, c.LLM.TimeoutSeconds)
@@ -128,15 +143,17 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	})
 
 	return &ServiceContext{
-		Config:         c,
-		DB:             db,
-		Redis:          redisClient,
-		Metrics:        metrics,
-		AuthMiddleware: middleware.NewAuthMiddleware(c.Auth).Handle,
+		Config:           c,
+		DB:               db,
+		Redis:            redisClient,
+		Metrics:          metrics,
+		AuthMiddleware:   middleware.NewAuthMiddleware(c.Auth).Handle,
+		ApiKeyMiddleware: middleware.NewApiKeyMiddleware(apiKeyRepo).Handle,
 
 		// Auth
 		UserRepo:   authRepo.NewUserRepo(userDao),
 		TenantRepo: authRepo.NewTenantRepo(tenantDao),
+		ApiKeyRepo: apiKeyRepo,
 
 		// Knowledge
 		KnowledgeBaseRepo: kbRepo.NewKnowledgeBaseRepo(knowledgeBaseDao),
@@ -146,6 +163,10 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		// Chat
 		ConversationRepo: chatRepo.NewConversationRepo(conversationDao),
 		MessageRepo:      chatRepo.NewMessageRepo(messageDao),
+
+		// Webhook
+		WebhookRepo:     webhookRepo,
+		WebhookDelivery: webhook.NewDeliveryService(webhookRepo),
 
 		// LLM & RAG
 		LLMClient:   llmClient,

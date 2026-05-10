@@ -257,7 +257,12 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 ### Phase 2 — 增强（4-8 周） 🚧 进行中
 - [x] Agent/Skill 框架 + Function Calling
 - [x] 人工客服转接
-- [ ] 多渠道接入（API/Webhook 优先）
+- [x] 多渠道接入（API/Webhook 优先）
+  - API Key 认证（X-API-Key + SHA-256 hash）
+  - Channel 抽象模块（web/api/webhook/wechat/feishu）
+  - OpenAI 兼容 Chat Completions API（同步 + SSE 流式）
+  - Webhook 管理 CRUD + 事件投递（HMAC 签名 + 指数退避重试）
+  - Webhook 入站消息处理（自动创建会话 + RAG 回复）
 - [ ] 对话分析仪表盘
 - [ ] LLM 成本追踪与限流
 
