@@ -67,6 +67,19 @@ export interface ShowKnowledgeBase {
   updatedAt: number;
 }
 
+export interface ShowDocument {
+  id: number;
+  uuid: string;
+  name: string;
+  contentType: string;
+  fileSize: number;
+  chunkCount: number;
+  status: string;
+  errorMsg?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 // ==================== SSE Event Types ====================
 
 export interface SSEMessageStart {
@@ -306,15 +319,104 @@ export async function sendMessageStream(
 export async function listKnowledgeBases(
   token: string,
   page = 1,
-  pageSize = 50
+  pageSize = 50,
+  name?: string
 ) {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   });
+  if (name) params.set("name", name);
   return request<ListData<ShowKnowledgeBase>>(
     "GET",
     `/api/v1/knowledge-bases?${params}`,
+    token
+  );
+}
+
+export async function createKnowledgeBase(
+  token: string,
+  data: { name: string; description?: string; model?: string }
+) {
+  return request<ShowKnowledgeBase>(
+    "POST",
+    "/api/v1/knowledge-bases",
+    token,
+    data
+  );
+}
+
+export async function getKnowledgeBase(token: string, id: number) {
+  return request<ShowKnowledgeBase>(
+    "GET",
+    `/api/v1/knowledge-bases/${id}`,
+    token
+  );
+}
+
+export async function updateKnowledgeBase(
+  token: string,
+  id: number,
+  data: { name?: string; description?: string }
+) {
+  return request<null>("PUT", `/api/v1/knowledge-bases/${id}`, token, data);
+}
+
+export async function deleteKnowledgeBase(token: string, id: number) {
+  return request<null>("DELETE", `/api/v1/knowledge-bases/${id}`, token);
+}
+
+// ==================== Document API ====================
+
+export async function listDocuments(
+  token: string,
+  kbId: number,
+  page = 1,
+  pageSize = 20,
+  status?: string
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  if (status) params.set("status", status);
+  return request<ListData<ShowDocument>>(
+    "GET",
+    `/api/v1/knowledge-bases/${kbId}/documents?${params}`,
+    token
+  );
+}
+
+export async function uploadDocument(
+  token: string,
+  kbId: number,
+  file: File
+): Promise<ApiResponse<ShowDocument>> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(
+    `${BASE}/api/v1/knowledge-bases/${kbId}/documents`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+export async function deleteDocument(
+  token: string,
+  kbId: number,
+  docId: number
+) {
+  return request<null>(
+    "DELETE",
+    `/api/v1/knowledge-bases/${kbId}/documents/${docId}`,
     token
   );
 }

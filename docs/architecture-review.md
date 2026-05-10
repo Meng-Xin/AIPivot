@@ -252,7 +252,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] Chat 模块：SSE 流式输出（POST /conversations/:convId/messages/stream）
 - [x] 前端 Chat Widget 原型（React + Vite + TailwindCSS + Zustand + SSE 流式）
 - [ ] LLM Gateway 集成（One API 或自建适配层）
-- [ ] 管理后台：知识库 CRUD UI
+- [x] 管理后台：知识库 CRUD UI
 
 ### Phase 2 — 增强（4-8 周）
 - [ ] Agent/Skill 框架 + Function Calling
@@ -480,9 +480,30 @@ data: {"code":1002,"msg":"AI 回复生成失败"}
 | `web/src/pages/LoginPage.tsx` | 登录/注册页 |
 | `web/src/pages/ChatPage.tsx` | 聊天主页（侧边栏 + 消息面板 + 输入区 + 新建弹窗） |
 
-**下一步优先级：**
-1. P1: 管理后台知识库 CRUD UI
-2. P2: LLM Gateway 多模型路由
-3. P2: Chat Widget 嵌入式 JS 打包
+### 2026-05-10 Phase 1 P1 — 管理后台知识库 CRUD UI
 
-*文档版本：v1.4 | 更新日期：2026-05-10*
+**完成内容：**
+
+1. **API 客户端补全** — `api.ts` 新增 `ShowDocument` 类型、`createKnowledgeBase`/`getKnowledgeBase`/`updateKnowledgeBase`/`deleteKnowledgeBase` + `listDocuments`/`uploadDocument`/`deleteDocument` 共 7 个 API 函数，`listKnowledgeBases` 增加 `name` 搜索参数
+2. **KnowledgePage** — 完整知识库管理页面（`web/src/pages/KnowledgePage.tsx`）：
+   - **知识库列表侧边栏**：搜索过滤、新建按钮、每项显示文档数/切块数、右键菜单（编辑/删除）
+   - **知识库详情头部**：名称/描述/统计指标/状态徽标/操作按钮（上传文档/编辑/删除）
+   - **文档列表**：文件名/大小/类型/切块数/状态/时间、状态徽标（pending/processing/completed/failed）、刷新/删除
+   - **文件上传**：隐藏 file input + 按钮触发，multipart/form-data 上传，支持 TXT/MD/PDF/DOC/DOCX/HTML/CSV
+   - **弹窗**：新建/编辑知识库表单（名称/描述/Embedding 模型选择）、删除确认弹窗（知识库/文档分别确认）
+   - **空状态**：知识库空 + 文档空均有引导 UI
+3. **顶层导航** — `App.tsx` 重构为左侧 icon 导航栏（深色 bg-slate-900）+ 右侧页面内容，支持「对话」和「知识库」两个 Tab 切换
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `web/src/lib/api.ts` | 新增 `ShowDocument` 类型 + 7 个 KB/Document CRUD API 函数 |
+| `web/src/pages/KnowledgePage.tsx` | **新文件** — 知识库管理完整页面 |
+| `web/src/App.tsx` | 重构为导航栏 + 多页面切换 |
+
+**下一步优先级：**
+1. P2: LLM Gateway 多模型路由
+2. P2: Chat Widget 嵌入式 JS 打包
+
+*文档版本：v1.5 | 更新日期：2026-05-10*
