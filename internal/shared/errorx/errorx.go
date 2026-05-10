@@ -3,11 +3,13 @@ package errorx
 import "fmt"
 
 const (
-	CodeSuccess  = 0
-	CodeFailed   = -1
-	CodeUnauth   = 401
-	CodeForbid   = 403
-	CodeNotFound = 404
+	CodeSuccess    = 0
+	CodeFailed     = -1
+	CodeBadRequest = 400
+	CodeUnauth     = 401
+	CodeForbid     = 403
+	CodeNotFound   = 404
+	CodeNotAllowed = 405
 
 	// AI-specific error codes
 	CodeLLMTimeout     = 1001

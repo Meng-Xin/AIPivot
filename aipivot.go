@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"time"
 
 	"aipivot/internal/config"
@@ -26,7 +27,10 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 
-	server := rest.MustNewServer(c.RestConf)
+	server := rest.MustNewServer(c.RestConf,
+		rest.WithNotFoundHandler(http.HandlerFunc(errorx.WriteNotFoundJSON)),
+		rest.WithNotAllowedHandler(http.HandlerFunc(errorx.WriteNotAllowedJSON)),
+	)
 	defer server.Stop()
 
 	svcCtx, err := svc.NewServiceContext(c)

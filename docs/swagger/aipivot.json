@@ -54,6 +54,588 @@
         }
       }
     },
+    "/api/v1/auth/register": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "认证"
+        ],
+        "summary": "用户注册 - 使用邮箱注册新账户（MVP 阶段自动绑定默认租户）",
+        "operationId": "authRegisterHandler",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "获取会话列表",
+        "operationId": "chatListConversation",
+        "parameters": [
+          {
+            "minimum": 1,
+            "type": "integer",
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer",
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "status",
+            "in": "query",
+            "allowEmptyValue": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ConversationListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "创建会话",
+        "operationId": "chatCreateConversation",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateConversationRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ConversationDetailResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{convId}/messages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "获取消息历史",
+        "operationId": "chatListMessage",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "convId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "minimum": 1,
+            "type": "integer",
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/MessageListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "发送消息（同步模式，MVP 阶段）",
+        "operationId": "chatSendMessage",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "会话 ID",
+            "name": "convId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SendMessageRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SendMessageResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "获取会话详情",
+        "operationId": "chatGetConversation",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ConversationDetailResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/close": {
+      "put": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "关闭会话",
+        "operationId": "chatCloseConversation",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "获取知识库列表",
+        "operationId": "knowledgeListKnowledgeBase",
+        "parameters": [
+          {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页条数",
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "按名称模糊搜索",
+            "name": "name",
+            "in": "query",
+            "allowEmptyValue": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/KnowledgeBaseListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "创建知识库",
+        "operationId": "knowledgeCreateKnowledgeBase",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateKnowledgeBaseRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/KnowledgeBaseDetailResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "获取知识库详情",
+        "operationId": "knowledgeGetKnowledgeBase",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "知识库 ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/KnowledgeBaseDetailResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "更新知识库",
+        "operationId": "knowledgeUpdateKnowledgeBase",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "知识库 ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateKnowledgeBaseRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "删除知识库",
+        "operationId": "knowledgeDeleteKnowledgeBase",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "知识库 ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases/{kbId}/documents": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "获取知识库文档列表",
+        "operationId": "knowledgeListDocument",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "kbId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "minimum": 1,
+            "type": "integer",
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer",
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "status",
+            "in": "query",
+            "allowEmptyValue": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/DocumentListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "上传文档到知识库",
+        "operationId": "knowledgeUploadDocument",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "知识库 ID",
+            "name": "kbId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/DocumentDetailResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases/{kbId}/documents/{id}": {
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "知识库管理"
+        ],
+        "summary": "删除文档",
+        "operationId": "knowledgeDeleteDocument",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "kbId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "produces": [
@@ -146,6 +728,9 @@
     }
   },
   "definitions": {
+    "CloseConversationRequest": {
+      "type": "object"
+    },
     "CommResponse": {
       "type": "object",
       "required": [
@@ -171,6 +756,168 @@
         }
       }
     },
+    "ConversationDetailResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "knowledgeBaseId",
+            "title",
+            "status",
+            "channel",
+            "messageCount",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "channel": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "knowledgeBaseId": {
+              "type": "integer"
+            },
+            "messageCount": {
+              "type": "integer"
+            },
+            "status": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowConversation"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ConversationListData": {
+      "type": "object",
+      "required": [
+        "total",
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowConversation"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "ConversationListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "total",
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowConversation"
+              }
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/ConversationListData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "CreateConversationRequest": {
+      "type": "object",
+      "properties": {
+        "knowledgeBaseId": {
+          "description": "关联知识库 ID",
+          "type": "integer"
+        },
+        "title": {
+          "description": "会话标题",
+          "type": "string"
+        }
+      }
+    },
+    "CreateKnowledgeBaseRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "description": "知识库描述",
+          "type": "string"
+        },
+        "model": {
+          "description": "Embedding 模型",
+          "type": "string",
+          "default": "text-embedding-3-small",
+          "example": "text-embedding-3-small"
+        },
+        "name": {
+          "description": "知识库名称",
+          "type": "string"
+        }
+      }
+    },
+    "DeleteDocumentRequest": {
+      "type": "object"
+    },
+    "DeleteKnowledgeBaseRequest": {
+      "type": "object"
+    },
     "DependencyStatus": {
       "type": "object",
       "required": [
@@ -195,6 +942,137 @@
         }
       }
     },
+    "DocumentDetailResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "contentType",
+            "fileSize",
+            "chunkCount",
+            "status",
+            "errorMsg",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "chunkCount": {
+              "type": "integer"
+            },
+            "contentType": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "integer"
+            },
+            "errorMsg": {
+              "type": "string"
+            },
+            "fileSize": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowDocument"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "DocumentListData": {
+      "type": "object",
+      "required": [
+        "total",
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowDocument"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "DocumentListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "total",
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowDocument"
+              }
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/DocumentListData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "GetConversationRequest": {
+      "type": "object"
+    },
+    "GetKnowledgeBaseRequest": {
+      "type": "object"
+    },
     "HealthResponse": {
       "type": "object",
       "required": [
@@ -207,6 +1085,162 @@
           "example": "UP"
         }
       }
+    },
+    "KnowledgeBaseDetailResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "description",
+            "model",
+            "dimension",
+            "status",
+            "docCount",
+            "chunkCount",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "chunkCount": {
+              "description": "切块数",
+              "type": "integer"
+            },
+            "createdAt": {
+              "description": "创建时间",
+              "type": "integer"
+            },
+            "description": {
+              "description": "描述",
+              "type": "string"
+            },
+            "dimension": {
+              "description": "向量维度",
+              "type": "integer"
+            },
+            "docCount": {
+              "description": "文档数",
+              "type": "integer"
+            },
+            "id": {
+              "description": "知识库 ID",
+              "type": "integer"
+            },
+            "model": {
+              "description": "Embedding 模型",
+              "type": "string"
+            },
+            "name": {
+              "description": "知识库名称",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态",
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "更新时间",
+              "type": "integer"
+            },
+            "uuid": {
+              "description": "唯一标识",
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowKnowledgeBase"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "KnowledgeBaseListData": {
+      "type": "object",
+      "required": [
+        "total",
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "description": "列表",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowKnowledgeBase"
+          }
+        },
+        "total": {
+          "description": "总数",
+          "type": "integer"
+        }
+      }
+    },
+    "KnowledgeBaseListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "total",
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "description": "列表",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowKnowledgeBase"
+              }
+            },
+            "total": {
+              "description": "总数",
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/KnowledgeBaseListData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ListConversationRequest": {
+      "type": "object"
+    },
+    "ListDocumentRequest": {
+      "type": "object"
+    },
+    "ListKnowledgeBaseRequest": {
+      "type": "object"
+    },
+    "ListMessageRequest": {
+      "type": "object"
     },
     "LoginData": {
       "type": "object",
@@ -437,6 +1471,63 @@
         }
       }
     },
+    "MessageListData": {
+      "type": "object",
+      "required": [
+        "total",
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowMessage"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "MessageListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "total",
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowMessage"
+              }
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/MessageListData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
     "PingResponse": {
       "type": "object",
       "required": [
@@ -508,6 +1599,298 @@
         }
       }
     },
+    "SendMessageRequest": {
+      "type": "object",
+      "required": [
+        "content",
+        "contentType"
+      ],
+      "properties": {
+        "content": {
+          "description": "消息内容",
+          "type": "string"
+        },
+        "contentType": {
+          "description": "内容类型",
+          "type": "string",
+          "default": "text",
+          "example": "text"
+        }
+      }
+    },
+    "SendMessageResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "role",
+            "content",
+            "contentType",
+            "tokenCount",
+            "model",
+            "latencyMs",
+            "sources",
+            "createdAt"
+          ],
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "contentType": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "latencyMs": {
+              "type": "integer"
+            },
+            "model": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tokenCount": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowMessage"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ShowConversation": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "knowledgeBaseId",
+        "title",
+        "status",
+        "channel",
+        "messageCount",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "knowledgeBaseId": {
+          "type": "integer"
+        },
+        "messageCount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "ShowDocument": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "name",
+        "contentType",
+        "fileSize",
+        "chunkCount",
+        "status",
+        "errorMsg",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "chunkCount": {
+          "type": "integer"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "errorMsg": {
+          "type": "string"
+        },
+        "fileSize": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "ShowKnowledgeBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "name",
+        "description",
+        "model",
+        "dimension",
+        "status",
+        "docCount",
+        "chunkCount",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "chunkCount": {
+          "description": "切块数",
+          "type": "integer"
+        },
+        "createdAt": {
+          "description": "创建时间",
+          "type": "integer"
+        },
+        "description": {
+          "description": "描述",
+          "type": "string"
+        },
+        "dimension": {
+          "description": "向量维度",
+          "type": "integer"
+        },
+        "docCount": {
+          "description": "文档数",
+          "type": "integer"
+        },
+        "id": {
+          "description": "知识库 ID",
+          "type": "integer"
+        },
+        "model": {
+          "description": "Embedding 模型",
+          "type": "string"
+        },
+        "name": {
+          "description": "知识库名称",
+          "type": "string"
+        },
+        "status": {
+          "description": "状态",
+          "type": "string"
+        },
+        "updatedAt": {
+          "description": "更新时间",
+          "type": "integer"
+        },
+        "uuid": {
+          "description": "唯一标识",
+          "type": "string"
+        }
+      }
+    },
+    "ShowMessage": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "role",
+        "content",
+        "contentType",
+        "tokenCount",
+        "model",
+        "latencyMs",
+        "sources",
+        "createdAt"
+      ],
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "latencyMs": {
+          "type": "integer"
+        },
+        "model": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tokenCount": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
     "ShowUser": {
       "type": "object",
       "required": [
@@ -576,9 +1959,25 @@
           "example": "550e8400-e29b-41d4-a716-446655440000"
         }
       }
+    },
+    "UpdateKnowledgeBaseRequest": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "知识库描述",
+          "type": "string"
+        },
+        "name": {
+          "description": "知识库名称",
+          "type": "string"
+        }
+      }
+    },
+    "UploadDocumentRequest": {
+      "type": "object"
     }
   },
-  "x-date": "2026-05-10 09:52:26",
+  "x-date": "2026-05-10 13:42:00",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
