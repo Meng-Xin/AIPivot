@@ -354,9 +354,42 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 | Infra | GET | /healthz, /readyz, /metrics, /v1/ping | ❌ |
 
 **下一步优先级：**
-1. P0: 文档异步处理 pipeline（Asynq + 切块 + Embedding + pgvector 写入）
-2. P0: Eino ChatModel + Retriever 集成，替换 SendMessage 中的 stub 回复
+1. ~~P0: 文档异步处理 pipeline（Asynq + 切块 + Embedding + pgvector 写入）~~ ✅
+2. ~~P0: Eino ChatModel + Retriever 集成，替换 SendMessage 中的 stub 回复~~ ✅
 3. P1: SSE 流式输出
 4. P1: 前端 Chat Widget 原型
 
-*文档版本：v1.1 | 更新日期：2026-05-10*
+### 2026-05-10 Phase 1 P0 — 文档 Pipeline + RAG 集成
+
+**完成内容：**
+
+1. **LLM 配置** — `config.LLMConf`（BaseURL/APIKey/ChatModel/EmbeddingModel/MaxTokens/Temperature）+ `WorkerConf`，YAML 配置完善
+2. **pkg/llm** — OpenAI-compatible HTTP 客户端（兼容 One API/OpenAI/Azure），支持 `ChatCompletion` 和 `Embed/EmbedSingle`
+3. **pkg/chunker** — 固定窗口+重叠文本切块器，支持段落边界优先切分、超长段落硬切分、句子边界回退
+4. **DocumentChunk DAO/Repo** — pgvector 原生 SQL 批量写入（`BatchCreateWithEmbedding`）+ cosine 相似度搜索（`SimilaritySearch`），GORM Gen 查询用于计数/删除
+5. **Asynq 异步 Worker** — `internal/worker/` 包含任务定义（`DocumentProcessPayload`）、处理器（`DocumentProcessor`）、Server 启动/关闭
+6. **文档处理 Pipeline** — 上传文档 → Asynq 入队 → Worker 消费 → 读取内容 → 切块 → 批量 Embedding → pgvector 写入 → 更新文档状态和知识库计数
+7. **RAG 模块** — `internal/modules/rag/Service`：retrieve（query embedding → pgvector Top-K）→ buildPrompt（system + context + history + question）→ LLM ChatCompletion
+8. **SendMessage 集成** — 替换 stub 回复，现在调用 RAG.Answer，支持知识库关联会话的检索增强生成；无知识库时降级为纯 LLM 对话
+9. **ServiceContext 扩展** — 新增 `LLMClient`/`RAGService`/`AsynqClient`/`DocumentChunkRepo`，完成 DI 组装和优雅关闭
+
+**新增文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `pkg/llm/client.go` | OpenAI-compatible LLM/Embedding 客户端 |
+| `pkg/chunker/chunker.go` | 文本切块器（段落+句子边界感知） |
+| `internal/modules/knowledge/repo/dao/document_chunk_dao.go` | pgvector 批量写入 + 相似度搜索 |
+| `internal/modules/knowledge/repo/document_chunk_repo.go` | DocumentChunk 仓储实现 |
+| `internal/modules/rag/service.go` | RAG 编排服务 |
+| `internal/worker/tasks.go` | Asynq 任务类型定义 |
+| `internal/worker/document_processor.go` | 文档处理异步任务处理器 |
+| `internal/worker/server.go` | Asynq Worker 启动/关闭 |
+
+**下一步优先级：**
+1. P1: SSE 流式输出（WebSocket/SSE 替换同步 HTTP）
+2. P1: 前端 Chat Widget 原型
+3. P1: 管理后台知识库 CRUD UI
+4. P2: LLM Gateway 多模型路由
+
+*文档版本：v1.2 | 更新日期：2026-05-10*

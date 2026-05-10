@@ -5,6 +5,7 @@ package knowledge
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
+	"aipivot/internal/worker"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -53,13 +55,21 @@ func (l *UploadDocumentLogic) UploadDocument(req *types.UploadDocumentRequest, r
 	}
 	defer file.Close()
 
-	// 3. 创建文档记录（status=pending，后续异步处理切块+Embedding）
+	// 3. 读取文件文本内容（MVP 阶段仅支持纯文本/Markdown，暂存于 file_path 字段）
+	content, err := io.ReadAll(file)
+	if err != nil {
+		l.Logger.Errorf("UploadDocument ReadFile err: %v", err)
+		return nil, errorx.NewInternalError("读取文件失败")
+	}
+
+	// 4. 创建文档记录（status=pending，后续异步处理切块+Embedding）
 	doc := &po.Document{
 		KnowledgeBaseID: req.KnowledgeBaseID,
 		TenantID:        tenantID,
 		Name:            header.Filename,
 		ContentType:     header.Header.Get("Content-Type"),
 		FileSize:        header.Size,
+		FilePath:        string(content), // MVP: 文本内容暂存于此字段，后续迁移到 MinIO/OSS
 		Status:          "pending",
 	}
 
@@ -68,7 +78,17 @@ func (l *UploadDocumentLogic) UploadDocument(req *types.UploadDocumentRequest, r
 		return nil, errorx.NewInternalError("上传文档失败")
 	}
 
-	// TODO: 触发异步任务 → 解析文档 → 切块 → Embedding → 存储 chunks
+	// 5. 提交异步处理任务（切块 → Embedding → pgvector 存储）
+	if err = worker.EnqueueDocumentProcess(l.svcCtx.AsynqClient, worker.DocumentProcessPayload{
+		DocumentID:      doc.ID,
+		KnowledgeBaseID: req.KnowledgeBaseID,
+		TenantID:        tenantID,
+		EmbeddingModel:  l.svcCtx.Config.LLM.EmbeddingModel,
+		EmbeddingDim:    l.svcCtx.Config.LLM.EmbeddingDim,
+	}); err != nil {
+		// 任务入队失败不影响文档记录，后续可重试
+		l.Logger.Errorf("UploadDocument EnqueueTask err: %v", err)
+	}
 
 	show := assembler.DocumentPoToShow(doc)
 	return &types.DocumentDetailResponse{

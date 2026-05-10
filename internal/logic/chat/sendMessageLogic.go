@@ -5,6 +5,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"aipivot/internal/modules/auth"
@@ -13,6 +14,7 @@ import (
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
+	"aipivot/pkg/llm"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -61,28 +63,43 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		return nil, errorx.NewInternalError("发送消息失败")
 	}
 
-	// 3. TODO: 调用 RAG/LLM 生成 AI 回复（MVP 阶段使用 stub 回复）
+	// 3. 获取最近对话历史，构建 LLM context
+	recentMsgs, _ := l.svcCtx.MessageRepo.GetRecentMessages(l.ctx, req.ConversationID, 10)
+	history := buildChatHistory(recentMsgs)
+
+	// 4. 调用 RAG 服务生成 AI 回复
 	startTime := time.Now()
-	aiContent := "你好！我是 AIPivot AI 助手，目前处于 MVP 阶段。RAG 和 LLM 集成即将上线，敬请期待！"
+	var kbID int64
+	if conv.KnowledgeBaseID != nil {
+		kbID = *conv.KnowledgeBaseID
+	}
+
+	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history)
+	if err != nil {
+		l.Logger.Errorf("SendMessage RAG.Answer err: %v", err)
+		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")
+	}
 	latencyMs := int(time.Since(startTime).Milliseconds())
 
-	// 4. 保存 AI 回复消息
+	// 5. 保存 AI 回复消息
+	sourcesJSON, _ := json.Marshal(result.Sources)
 	aiMsg := &po.Message{
 		ConversationID: req.ConversationID,
 		TenantID:       tenantID,
 		Role:           "assistant",
-		Content:        aiContent,
+		Content:        result.Content,
 		ContentType:    "text",
-		Model:          "stub-v1",
+		TokenCount:     result.TokenCount,
+		Model:          result.Model,
 		LatencyMs:      latencyMs,
-		Sources:        "[]",
+		Sources:        string(sourcesJSON),
 	}
 	if err = l.svcCtx.MessageRepo.Create(l.ctx, aiMsg); err != nil {
 		l.Logger.Errorf("SendMessage CreateAIMsg err: %v", err)
 		return nil, errorx.NewInternalError("发送消息失败")
 	}
 
-	// 5. 更新会话消息计数（+2: 用户消息 + AI 回复）
+	// 6. 更新会话消息计数（+2: 用户消息 + AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 
@@ -93,4 +110,15 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		Timestamp: time.Now().Unix(),
 		Data:      show,
 	}, nil
+}
+
+// buildChatHistory 将最近消息列表转为 LLM ChatMessage 格式（排除系统消息）。
+func buildChatHistory(msgs []*po.Message) []llm.ChatMessage {
+	history := make([]llm.ChatMessage, 0, len(msgs))
+	for _, m := range msgs {
+		if m.Role == "user" || m.Role == "assistant" {
+			history = append(history, llm.ChatMessage{Role: m.Role, Content: m.Content})
+		}
+	}
+	return history
 }

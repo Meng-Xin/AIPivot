@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 
+	"aipivot/internal/modules/knowledge/repo/dao"
 	"aipivot/internal/shared/po"
 )
 
@@ -20,4 +21,11 @@ type DocumentRepository interface {
 	GetList(ctx context.Context, kbID int64, page, pageSize int, status string) ([]*po.Document, int64, error)
 	Delete(ctx context.Context, id int64) error
 	UpdateStatus(ctx context.Context, id int64, status, errorMsg string) error
+}
+
+type DocumentChunkRepository interface {
+	BatchCreateWithEmbedding(ctx context.Context, chunks []dao.ChunkWithEmbedding) error
+	SimilaritySearch(ctx context.Context, kbID int64, queryEmbedding []float32, topK int) ([]dao.ChunkSearchResult, error)
+	DeleteByDocumentID(ctx context.Context, docID int64) error
+	CountByKnowledgeBaseID(ctx context.Context, kbID int64) (int64, error)
 }

@@ -44,3 +44,17 @@ Auth:
 Migration:
   Enabled: true
   Path: migrations
+
+LLM:
+  BaseURL: "http://127.0.0.1:3000/v1"
+  APIKey: "sk-your-api-key"
+  ChatModel: "gpt-3.5-turbo"
+  EmbeddingModel: "text-embedding-3-small"
+  EmbeddingDim: 1536
+  MaxTokens: 2048
+  Temperature: 0.7
+  TimeoutSeconds: 60
+
+Worker:
+  Enabled: true
+  Concurrency: 5

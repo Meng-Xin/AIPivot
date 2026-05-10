@@ -11,6 +11,8 @@ type Config struct {
 	Metrics   MetricsConf
 	Auth      AuthConf
 	Migration MigrationConf
+	LLM       LLMConf
+	Worker    WorkerConf
 }
 
 type AuthConf struct {
@@ -52,4 +54,21 @@ type TelemetryConf struct {
 type MetricsConf struct {
 	Enabled bool   `json:",default=true"`
 	Path    string `json:",default=/metrics"`
+}
+
+// LLMConf OpenAI-compatible API 配置（兼容 One API / OpenAI / Azure）
+type LLMConf struct {
+	BaseURL        string  `json:",default=http://127.0.0.1:3000/v1"` // One API 或 OpenAI endpoint
+	APIKey         string  `json:",optional"`
+	ChatModel      string  `json:",default=gpt-3.5-turbo"`
+	EmbeddingModel string  `json:",default=text-embedding-3-small"`
+	EmbeddingDim   int     `json:",default=1536"`
+	MaxTokens      int     `json:",default=2048"`
+	Temperature    float64 `json:",default=0.7"`
+	TimeoutSeconds int     `json:",default=60"`
+}
+
+type WorkerConf struct {
+	Enabled     bool `json:",default=true"`
+	Concurrency int  `json:",default=5"`
 }

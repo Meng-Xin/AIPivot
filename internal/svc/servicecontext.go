@@ -14,9 +14,12 @@ import (
 	chatDao "aipivot/internal/modules/chat/repo/dao"
 	kbRepo "aipivot/internal/modules/knowledge/repo"
 	kbDao "aipivot/internal/modules/knowledge/repo/dao"
+	"aipivot/internal/modules/rag"
 	"aipivot/internal/observability"
 	"aipivot/internal/shared/query"
+	"aipivot/pkg/llm"
 
+	"github.com/hibiken/asynq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -41,9 +44,17 @@ type ServiceContext struct {
 	KnowledgeBaseRepo kbRepo.KnowledgeBaseRepository
 	DocumentRepo      kbRepo.DocumentRepository
 
+	// Knowledge Chunk Repo
+	DocumentChunkRepo kbRepo.DocumentChunkRepository
+
 	// Chat Repo
 	ConversationRepo chatRepo.ConversationRepository
 	MessageRepo      chatRepo.MessageRepository
+
+	// LLM & RAG
+	LLMClient   *llm.Client
+	RAGService  *rag.Service
+	AsynqClient *asynq.Client
 }
 
 func NewServiceContext(c config.Config) (*ServiceContext, error) {
@@ -76,10 +87,32 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	// Knowledge DAOs
 	knowledgeBaseDao := kbDao.NewKnowledgeBaseDao(q)
 	documentDao := kbDao.NewDocumentDao(q)
+	documentChunkDao := kbDao.NewDocumentChunkDao(q, db)
 
 	// Chat DAOs
 	conversationDao := chatDao.NewConversationDao(q)
 	messageDao := chatDao.NewMessageDao(q)
+
+	// LLM Client (OpenAI-compatible, 支持 One API)
+	llmClient := llm.NewClient(c.LLM.BaseURL, c.LLM.APIKey, c.LLM.TimeoutSeconds)
+
+	// Document Chunk Repo
+	chunkRepo := kbRepo.NewDocumentChunkRepo(documentChunkDao)
+
+	// RAG Service
+	ragService := rag.NewService(llmClient, chunkRepo, rag.Config{
+		ChatModel:      c.LLM.ChatModel,
+		EmbeddingModel: c.LLM.EmbeddingModel,
+		MaxTokens:      c.LLM.MaxTokens,
+		Temperature:    c.LLM.Temperature,
+	})
+
+	// Asynq Client（用于提交异步任务）
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     c.Redis.Addr,
+		Password: c.Redis.Password,
+		DB:       c.Redis.DB,
+	})
 
 	return &ServiceContext{
 		Config:         c,
@@ -95,10 +128,16 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		// Knowledge
 		KnowledgeBaseRepo: kbRepo.NewKnowledgeBaseRepo(knowledgeBaseDao),
 		DocumentRepo:      kbRepo.NewDocumentRepo(documentDao),
+		DocumentChunkRepo: chunkRepo,
 
 		// Chat
 		ConversationRepo: chatRepo.NewConversationRepo(conversationDao),
 		MessageRepo:      chatRepo.NewMessageRepo(messageDao),
+
+		// LLM & RAG
+		LLMClient:   llmClient,
+		RAGService:  ragService,
+		AsynqClient: asynqClient,
 
 		HealthChecks: []infra.DependencyCheck{
 			infra.CheckPostgres(db),
@@ -106,7 +145,10 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		},
 		Shutdown: func(ctx context.Context) error {
 			var shutdownErr error
-			if err := shutdown(ctx); err != nil {
+			if err := asynqClient.Close(); err != nil && shutdownErr == nil {
+				shutdownErr = fmt.Errorf("close asynq client: %w", err)
+			}
+			if err := shutdown(ctx); err != nil && shutdownErr == nil {
 				shutdownErr = fmt.Errorf("shutdown tracing: %w", err)
 			}
 			if err := redisClient.Close(); err != nil && shutdownErr == nil {

@@ -11,6 +11,7 @@ import (
 	"aipivot/internal/observability"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
+	"aipivot/internal/worker"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -41,6 +42,22 @@ func main() {
 			logx.Errorf("failed to shutdown service context: %v", err)
 		}
 	}()
+
+	// 启动 Asynq 异步任务 worker（文档处理 pipeline）
+	if c.Worker.Enabled {
+		processor := worker.NewDocumentProcessor(
+			svcCtx.LLMClient,
+			svcCtx.DocumentRepo,
+			svcCtx.DocumentChunkRepo,
+			svcCtx.KnowledgeBaseRepo,
+		)
+		workerShutdown, err := worker.StartWorker(c, processor)
+		if err != nil {
+			logx.Errorf("failed to start worker: %v", err)
+		} else {
+			defer workerShutdown()
+		}
+	}
 
 	errorx.RegisterErrorHandler()
 	server.Use(observability.Middleware(svcCtx.Metrics, c.Name))
