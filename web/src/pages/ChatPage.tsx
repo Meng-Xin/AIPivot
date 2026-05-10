@@ -19,11 +19,13 @@ import {
   createConversation,
   sendMessageStream,
   listKnowledgeBases,
+  listModels,
 } from "../lib/api";
 import type {
   ShowConversation,
   ShowMessage,
   ShowKnowledgeBase,
+  ShowModel,
 } from "../lib/api";
 
 // ==================== ChatPage ====================
@@ -58,6 +60,8 @@ export default function ChatPage() {
   const [knowledgeBases, setKnowledgeBases] = useState<ShowKnowledgeBase[]>([]);
   const [selectedKbId, setSelectedKbId] = useState<number | undefined>();
   const [newTitle, setNewTitle] = useState("");
+  const [chatModels, setChatModels] = useState<ShowModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -108,6 +112,7 @@ export default function ChatPage() {
       const res = await createConversation(token, {
         knowledgeBaseId: selectedKbId,
         title: newTitle || undefined,
+        model: selectedModel || undefined,
       });
       if (res.code === 0) {
         setConversations([res.data, ...conversations]);
@@ -115,17 +120,26 @@ export default function ChatPage() {
         setShowNewChat(false);
         setNewTitle("");
         setSelectedKbId(undefined);
+        setSelectedModel("");
       }
     } catch (err) {
       console.error("创建会话失败:", err);
     }
   };
 
-  // 加载知识库列表（创建会话弹窗时）
+  // 加载知识库列表和模型列表（创建会话弹窗时）
   useEffect(() => {
     if (!showNewChat) return;
     listKnowledgeBases(token).then((res) => {
       if (res.code === 0) setKnowledgeBases(res.data.list);
+    });
+    listModels(token).then((res) => {
+      if (res.code === 0) {
+        setChatModels(res.data.chatModels);
+        // 自动选中默认模型
+        const def = res.data.chatModels.find((m) => m.isDefault);
+        if (def && !selectedModel) setSelectedModel(def.id);
+      }
     });
   }, [showNewChat, token]);
 
@@ -372,6 +386,9 @@ export default function ChatPage() {
           setSelectedKbId={setSelectedKbId}
           newTitle={newTitle}
           setNewTitle={setNewTitle}
+          chatModels={chatModels}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
           onClose={() => setShowNewChat(false)}
           onCreate={handleCreateConversation}
         />
@@ -582,6 +599,9 @@ function NewChatModal({
   setSelectedKbId,
   newTitle,
   setNewTitle,
+  chatModels,
+  selectedModel,
+  setSelectedModel,
   onClose,
   onCreate,
 }: {
@@ -590,6 +610,9 @@ function NewChatModal({
   setSelectedKbId: (id: number | undefined) => void;
   newTitle: string;
   setNewTitle: (v: string) => void;
+  chatModels: ShowModel[];
+  selectedModel: string;
+  setSelectedModel: (v: string) => void;
   onClose: () => void;
   onCreate: () => void;
 }) {
@@ -618,6 +641,28 @@ function NewChatModal({
               placeholder="例如：产品咨询"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              AI 模型
+            </label>
+            <div className="relative">
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 pr-9 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              >
+                {chatModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.provider ? ` (${m.provider})` : ""}
+                    {m.isDefault ? " ✦ 默认" : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
           </div>
 
           <div>

@@ -66,6 +66,18 @@ type LLMConf struct {
 	MaxTokens      int     `json:",default=2048"`
 	Temperature    float64 `json:",default=0.7"`
 	TimeoutSeconds int     `json:",default=60"`
+
+	// 多模型路由：声明可用模型列表，供前端选择和后端路由
+	ChatModels      []ModelOption `json:",optional"`
+	EmbeddingModels []ModelOption `json:",optional"`
+}
+
+// ModelOption 可用模型选项（配置驱动，由 One API 等网关提供实际路由）
+type ModelOption struct {
+	ID        string `json:"ID"`                  // 模型标识，传给 LLM 网关（如 gpt-4o / deepseek-chat）
+	Name      string `json:"Name"`                // 前端展示名
+	Provider  string `json:"Provider,optional"`   // 供应商（openai / deepseek / qwen 等）
+	MaxTokens int    `json:"MaxTokens,default=0"` // 模型最大 context 窗口（0 表示未配置）
 }
 
 type WorkerConf struct {

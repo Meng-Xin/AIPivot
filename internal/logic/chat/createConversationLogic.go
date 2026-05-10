@@ -42,6 +42,7 @@ func (l *CreateConversationLogic) CreateConversation(req *types.CreateConversati
 		TenantID: tenantID,
 		UserID:   &userID,
 		Title:    req.Title,
+		Model:    req.Model,
 		Status:   "active",
 		Channel:  "web",
 	}

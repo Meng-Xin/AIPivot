@@ -17,7 +17,8 @@ type StreamMeta struct {
 // AnswerStream 执行 RAG 流式问答：retrieve → prompt → stream generate。
 // 返回 channel 逐步推送增量 token，以及检索来源列表（同步可用）。
 // kbID 为 0 时跳过检索，直接流式调用 LLM。
-func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string, history []llm.ChatMessage) (<-chan llm.StreamEvent, *StreamMeta, error) {
+// model 为空时使用配置中的默认聊天模型。
+func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string) (<-chan llm.StreamEvent, *StreamMeta, error) {
 	var contexts []RetrievedChunk
 
 	// 检索相关切块（与同步模式共用逻辑）
@@ -34,7 +35,7 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 
 	// 流式调用 LLM（区别于同步 Answer 使用 ChatCompletion）
 	stream, err := s.llmClient.ChatCompletionStream(ctx, &llm.ChatRequest{
-		Model:       s.chatModel,
+		Model:       s.chatModelOrDefault(model),
 		Messages:    messages,
 		MaxTokens:   s.maxTokens,
 		Temperature: s.temperature,

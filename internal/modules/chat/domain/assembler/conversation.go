@@ -15,6 +15,7 @@ func ConversationPoToShow(c *po.Conversation) types.ShowConversation {
 		UUID:            c.UUID,
 		KnowledgeBaseID: kbID,
 		Title:           c.Title,
+		Model:           c.Model,
 		Status:          c.Status,
 		Channel:         c.Channel,
 		MessageCount:    c.MessageCount,

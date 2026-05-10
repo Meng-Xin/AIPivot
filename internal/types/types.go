@@ -35,6 +35,7 @@ type ConversationListResponse struct {
 type CreateConversationRequest struct {
 	KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"` // 关联知识库 ID
 	Title           string `json:"title,optional"`           // 会话标题
+	Model           string `json:"model,optional"`           // 指定聊天模型（空则用默认模型）
 }
 
 type CreateKnowledgeBaseRequest struct {
@@ -163,6 +164,18 @@ type MessageListResponse struct {
 	Data      MessageListData `json:"data"`
 }
 
+type ModelListData struct {
+	ChatModels      []ShowModel `json:"chatModels"`      // 可用聊天模型
+	EmbeddingModels []ShowModel `json:"embeddingModels"` // 可用 Embedding 模型
+}
+
+type ModelListResponse struct {
+	Code      int32         `json:"code"`
+	Msg       string        `json:"msg"`
+	Timestamp int64         `json:"timestamp"`
+	Data      ModelListData `json:"data"`
+}
+
 type PingResponse struct {
 	Message   string `json:"message,example=pong"`                             // 固定返回 "pong"
 	TraceId   string `json:"traceId,example=4bf92f3577b34da6a3ce929d0e0e4736"` // 链路追踪 ID
@@ -198,6 +211,7 @@ type ShowConversation struct {
 	UUID            string `json:"uuid"`
 	KnowledgeBaseID int64  `json:"knowledgeBaseId,omitempty"`
 	Title           string `json:"title"`
+	Model           string `json:"model,omitempty"`
 	Status          string `json:"status"`
 	Channel         string `json:"channel"`
 	MessageCount    int    `json:"messageCount"`
@@ -243,6 +257,15 @@ type ShowMessage struct {
 	LatencyMs   int      `json:"latencyMs,omitempty"`
 	Sources     []string `json:"sources,omitempty"`
 	CreatedAt   int64    `json:"createdAt"`
+}
+
+type ShowModel struct {
+	ID        string `json:"id"`                  // 模型标识（如 gpt-4o）
+	Name      string `json:"name"`                // 展示名称
+	Type      string `json:"type"`                // 类型: chat / embedding
+	Provider  string `json:"provider,omitempty"`  // 供应商
+	MaxTokens int    `json:"maxTokens,omitempty"` // 最大 context 窗口
+	IsDefault bool   `json:"isDefault"`           // 是否为默认模型
 }
 
 type ShowUser struct {

@@ -251,7 +251,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [ ] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
 - [x] Chat 模块：SSE 流式输出（POST /conversations/:convId/messages/stream）
 - [x] 前端 Chat Widget 原型（React + Vite + TailwindCSS + Zustand + SSE 流式）
-- [ ] LLM Gateway 集成（One API 或自建适配层）
+- [x] LLM Gateway 多模型路由（配置驱动模型列表 + GET /api/v1/models + per-conversation 模型选择）
 - [x] 管理后台：知识库 CRUD UI
 
 ### Phase 2 — 增强（4-8 周）
@@ -503,7 +503,44 @@ data: {"code":1002,"msg":"AI 回复生成失败"}
 | `web/src/App.tsx` | 重构为导航栏 + 多页面切换 |
 
 **下一步优先级：**
-1. P2: LLM Gateway 多模型路由
-2. P2: Chat Widget 嵌入式 JS 打包
+1. P2: Chat Widget 嵌入式 JS 打包
+2. P1: 异步文档处理 pipeline（切块 → Embedding → pgvector 存储）
 
-*文档版本：v1.5 | 更新日期：2026-05-10*
+---
+
+### 2026-05-10 Phase 1 P2 — LLM Gateway 多模型路由
+
+**完成内容：**
+
+1. **配置层** — `config.go` 新增 `ModelOption` 结构体 + `ChatModels`/`EmbeddingModels` 列表字段；`aipivot-api.yaml` 配置 4 个聊天模型（GPT-3.5-Turbo/GPT-4o/GPT-4o-Mini/DeepSeek-Chat）+ 2 个 Embedding 模型
+2. **API 层** — 新建 `models.api` 定义 `ShowModel`/`ModelListData`/`ModelListResponse` 类型 + `GET /api/v1/models` 端点；`chat.api` 的 `CreateConversationRequest` 和 `ShowConversation` 增加 `model` 字段
+3. **数据层** — Migration 004：`conversations` 表新增 `model VARCHAR(100) NOT NULL DEFAULT ''`；PO `Conversation` 增加 `Model` 字段；GORM Gen 重新生成
+4. **业务层** — RAG `Service.Answer`/`AnswerStream` 增加 `model` 参数 + `chatModelOrDefault` 回退逻辑；`CreateConversationLogic` 存储模型选择；`SendMessageLogic`/`SendMessageStreamLogic` 透传会话模型到 RAG 调用
+5. **前端** — `api.ts` 新增 `ShowModel`/`ModelListData`/`listModels`；`ChatPage.tsx` 新建会话弹窗增加 AI 模型下拉选择器，自动选中默认模型
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `internal/config/config.go` | 新增 `ModelOption` 结构体 + `ChatModels`/`EmbeddingModels` 字段 |
+| `etc/aipivot-api.yaml` | 添加多模型配置列表 |
+| `api/models.api` | **新文件** — 模型列表 API 定义 |
+| `api/chat.api` | `CreateConversationRequest`/`ShowConversation` 增加 `model` 字段 |
+| `api/entry.api` | 导入 `models.api` |
+| `migrations/000004_conversation_model.up.sql` | **新文件** — conversations 表增加 model 列 |
+| `migrations/000004_conversation_model.down.sql` | **新文件** — 回滚 |
+| `internal/shared/po/conversation.go` | 增加 `Model` 字段 |
+| `internal/types/types.go` | goctl 重新生成，含新类型 |
+| `internal/handler/routes.go` | goctl 重新生成 + 手动恢复 SSE 路由 |
+| `internal/handler/models/listModelsHandler.go` | **新文件** — goctl 生成 |
+| `internal/logic/models/listModelsLogic.go` | **新文件** — 读取配置返回模型列表 |
+| `internal/modules/chat/domain/assembler/conversation.go` | 映射 Model 字段 |
+| `internal/logic/chat/createConversationLogic.go` | 存储 `req.Model` |
+| `internal/logic/chat/sendMessageLogic.go` | 透传 `conv.Model` 到 RAG |
+| `internal/logic/chat/sendMessageStreamLogic.go` | 透传 `conv.Model` 到 RAG |
+| `internal/modules/rag/service.go` | `Answer` + `chatModelOrDefault` 支持模型覆盖 |
+| `internal/modules/rag/stream.go` | `AnswerStream` 支持模型覆盖 |
+| `web/src/lib/api.ts` | 新增 `ShowModel`/`ModelListData`/`listModels` + `createConversation` 增加 model 参数 |
+| `web/src/pages/ChatPage.tsx` | 新建会话弹窗增加 AI 模型选择器 |
+
+*文档版本：v1.6 | 更新日期：2026-05-10*

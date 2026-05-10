@@ -30,11 +30,26 @@ export interface ShowConversation {
   uuid: string;
   knowledgeBaseId?: number;
   title: string;
+  model?: string;
   status: string;
   channel: string;
   messageCount: number;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface ShowModel {
+  id: string;
+  name: string;
+  type: "chat" | "embedding";
+  provider?: string;
+  maxTokens?: number;
+  isDefault: boolean;
+}
+
+export interface ModelListData {
+  chatModels: ShowModel[];
+  embeddingModels: ShowModel[];
 }
 
 export interface ShowMessage {
@@ -157,9 +172,15 @@ export async function register(
 
 export async function createConversation(
   token: string,
-  opts?: { knowledgeBaseId?: number; title?: string }
+  opts?: { knowledgeBaseId?: number; title?: string; model?: string }
 ) {
   return request<ShowConversation>("POST", "/api/v1/conversations", token, opts);
+}
+
+// ==================== Models API ====================
+
+export async function listModels(token: string) {
+  return request<ModelListData>("GET", "/api/v1/models", token);
 }
 
 export async function listConversations(

@@ -11,6 +11,7 @@ type Conversation struct {
 	UserID          *int64     `gorm:"column:user_id"`             // 发起用户 ID（匿名对话可为空）
 	KnowledgeBaseID *int64     `gorm:"column:knowledge_base_id"`   // 关联知识库 ID（决定 RAG 检索范围）
 	Title           string     `gorm:"column:title"`               // 会话标题（由 LLM 自动生成或用户指定）
+	Model           string     `gorm:"column:model"`               // 聊天模型标识（如 gpt-4o），空字符串表示使用系统默认模型
 	Status          string     `gorm:"column:status"`              // 状态: active / waiting_human / resolved / closed
 	Channel         string     `gorm:"column:channel"`             // 接入渠道: web / api / wechat / feishu
 	MessageCount    int        `gorm:"column:message_count"`       // 消息数量（冗余计数）

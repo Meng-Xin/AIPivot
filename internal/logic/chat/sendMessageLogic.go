@@ -75,7 +75,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		kbID = *conv.KnowledgeBaseID
 	}
 
-	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history)
+	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history, conv.Model)
 	if err != nil {
 		l.Logger.Errorf("SendMessage RAG.Answer err: %v", err)
 		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")

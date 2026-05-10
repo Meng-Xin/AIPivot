@@ -42,9 +42,18 @@ func NewService(llmClient *llm.Client, chunkRepo repo.DocumentChunkRepository, c
 	}
 }
 
+// chatModelOrDefault 返回有效的聊天模型标识，空字符串时回退到配置默认值。
+func (s *Service) chatModelOrDefault(model string) string {
+	if model != "" {
+		return model
+	}
+	return s.chatModel
+}
+
 // Answer 执行 RAG 问答：retrieve → prompt → generate。
 // kbID 为 0 时跳过检索，直接调用 LLM。
-func (s *Service) Answer(ctx context.Context, kbID int64, question string, history []llm.ChatMessage) (*AnswerResult, error) {
+// model 为空时使用配置中的默认聊天模型。
+func (s *Service) Answer(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string) (*AnswerResult, error) {
 	var contexts []RetrievedChunk
 
 	// 1. 检索相关切块（知识库 ID > 0 时执行）
@@ -61,9 +70,9 @@ func (s *Service) Answer(ctx context.Context, kbID int64, question string, histo
 	// 2. 组装 prompt
 	messages := s.buildPrompt(question, contexts, history)
 
-	// 3. 调用 LLM 生成回复
+	// 3. 调用 LLM 生成回复（支持 per-conversation 模型选择）
 	resp, err := s.llmClient.ChatCompletion(ctx, &llm.ChatRequest{
-		Model:       s.chatModel,
+		Model:       s.chatModelOrDefault(model),
 		Messages:    messages,
 		MaxTokens:   s.maxTokens,
 		Temperature: s.temperature,

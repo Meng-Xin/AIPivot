@@ -10,6 +10,7 @@ import (
 	chat "aipivot/internal/handler/chat"
 	infra "aipivot/internal/handler/infra"
 	knowledge "aipivot/internal/handler/knowledge"
+	models "aipivot/internal/handler/models"
 	"aipivot/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -165,6 +166,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodDelete,
 					Path:    "/knowledge-bases/:kbId/documents/:id",
 					Handler: knowledge.DeleteDocumentHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 获取可用模型列表
+					Method:  http.MethodGet,
+					Path:    "/models",
+					Handler: models.ListModelsHandler(serverCtx),
 				},
 			}...,
 		),

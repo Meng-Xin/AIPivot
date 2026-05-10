@@ -89,7 +89,7 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		kbID = *conv.KnowledgeBaseID
 	}
 
-	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, kbID, req.Content, history)
+	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, kbID, req.Content, history, conv.Model)
 	if err != nil {
 		l.Logger.Errorf("SendMessageStream RAG.AnswerStream err: %v", err)
 		sseWriter.WriteError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")

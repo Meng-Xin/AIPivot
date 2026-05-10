@@ -54,6 +54,30 @@ LLM:
   MaxTokens: 2048
   Temperature: 0.7
   TimeoutSeconds: 60
+  ChatModels:
+    - ID: "gpt-3.5-turbo"
+      Name: "GPT-3.5 Turbo"
+      Provider: "openai"
+      MaxTokens: 16385
+    - ID: "gpt-4o"
+      Name: "GPT-4o"
+      Provider: "openai"
+      MaxTokens: 128000
+    - ID: "gpt-4o-mini"
+      Name: "GPT-4o Mini"
+      Provider: "openai"
+      MaxTokens: 128000
+    - ID: "deepseek-chat"
+      Name: "DeepSeek Chat"
+      Provider: "deepseek"
+      MaxTokens: 65536
+  EmbeddingModels:
+    - ID: "text-embedding-3-small"
+      Name: "Embedding 3 Small (1536d)"
+      Provider: "openai"
+    - ID: "text-embedding-3-large"
+      Name: "Embedding 3 Large (3072d)"
+      Provider: "openai"
 
 Worker:
   Enabled: true

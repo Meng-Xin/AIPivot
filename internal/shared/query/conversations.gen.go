@@ -34,6 +34,7 @@ func newConversation(db *gorm.DB, opts ...gen.DOOption) conversation {
 	_conversation.UserID = field.NewInt64(tableName, "user_id")
 	_conversation.KnowledgeBaseID = field.NewInt64(tableName, "knowledge_base_id")
 	_conversation.Title = field.NewString(tableName, "title")
+	_conversation.Model = field.NewString(tableName, "model")
 	_conversation.Status = field.NewString(tableName, "status")
 	_conversation.Channel = field.NewString(tableName, "channel")
 	_conversation.MessageCount = field.NewInt(tableName, "message_count")
@@ -58,6 +59,7 @@ type conversation struct {
 	UserID          field.Int64
 	KnowledgeBaseID field.Int64
 	Title           field.String
+	Model           field.String
 	Status          field.String
 	Channel         field.String
 	MessageCount    field.Int
@@ -88,6 +90,7 @@ func (c *conversation) updateTableName(table string) *conversation {
 	c.UserID = field.NewInt64(table, "user_id")
 	c.KnowledgeBaseID = field.NewInt64(table, "knowledge_base_id")
 	c.Title = field.NewString(table, "title")
+	c.Model = field.NewString(table, "model")
 	c.Status = field.NewString(table, "status")
 	c.Channel = field.NewString(table, "channel")
 	c.MessageCount = field.NewInt(table, "message_count")
@@ -124,13 +127,14 @@ func (c *conversation) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (c *conversation) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 14)
+	c.fieldMap = make(map[string]field.Expr, 15)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["uuid"] = c.UUID
 	c.fieldMap["tenant_id"] = c.TenantID
 	c.fieldMap["user_id"] = c.UserID
 	c.fieldMap["knowledge_base_id"] = c.KnowledgeBaseID
 	c.fieldMap["title"] = c.Title
+	c.fieldMap["model"] = c.Model
 	c.fieldMap["status"] = c.Status
 	c.fieldMap["channel"] = c.Channel
 	c.fieldMap["message_count"] = c.MessageCount

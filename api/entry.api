@@ -19,5 +19,6 @@ import (
 	"auth.api"
 	"knowledge.api"
 	"chat.api"
+	"models.api"
 )
 

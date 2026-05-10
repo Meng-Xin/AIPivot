@@ -12,6 +12,7 @@ type (
 	CreateConversationRequest {
 		KnowledgeBaseID int64  `json:"knowledgeBaseId,optional"` // 关联知识库 ID
 		Title           string `json:"title,optional"`           // 会话标题
+		Model           string `json:"model,optional"`           // 指定聊天模型（空则用默认模型）
 	}
 
 	// ShowConversation 会话展示对象
@@ -20,6 +21,7 @@ type (
 		UUID            string `json:"uuid"`
 		KnowledgeBaseID int64  `json:"knowledgeBaseId,omitempty"`
 		Title           string `json:"title"`
+		Model           string `json:"model,omitempty"`
 		Status          string `json:"status"`
 		Channel         string `json:"channel"`
 		MessageCount    int    `json:"messageCount"`
