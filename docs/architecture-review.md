@@ -249,7 +249,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] ServiceContext 完成全模块 DI 组装（Auth + Knowledge + Chat Repo 注入）
 - [ ] 知识库模块：文档解析 → 切块 → Embedding → pgvector 存储（异步 pipeline）
 - [ ] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
-- [ ] Chat 模块：WebSocket 会话 + SSE 流式输出（替换当前同步 stub）
+- [x] Chat 模块：SSE 流式输出（POST /conversations/:convId/messages/stream）
 - [ ] LLM Gateway 集成（One API 或自建适配层）
 - [ ] 前端 Chat Widget 原型
 - [ ] 管理后台：知识库 CRUD UI
@@ -387,9 +387,52 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 | `internal/worker/server.go` | Asynq Worker 启动/关闭 |
 
 **下一步优先级：**
-1. P1: SSE 流式输出（WebSocket/SSE 替换同步 HTTP）
+1. ~~P1: SSE 流式输出~~ ✅
 2. P1: 前端 Chat Widget 原型
 3. P1: 管理后台知识库 CRUD UI
 4. P2: LLM Gateway 多模型路由
 
-*文档版本：v1.2 | 更新日期：2026-05-10*
+### 2026-05-10 Phase 1 P1 — SSE 流式输出
+
+**完成内容：**
+
+1. **LLM 流式客户端** — `pkg/llm/stream.go` 新增 `ChatCompletionStream` 方法，解析 OpenAI SSE 协议（`data: {...}` + `[DONE]`），通过 channel 逐步推送增量 token
+2. **RAG 流式编排** — `internal/modules/rag/stream.go` 新增 `AnswerStream` 方法：retrieve → prompt → streaming LLM generation，返回 `<-chan StreamEvent` + `StreamMeta`（来源引用）
+3. **SSE Writer** — `internal/shared/sse/writer.go` 封装 SSE 事件写入，支持 `WriteEvent`/`WriteDone`/`WriteError`，自动设置 `text/event-stream` 头和 flush
+4. **流式 Logic** — `internal/logic/chat/sendMessageStreamLogic.go`：校验会话 → 保存用户消息 → RAG 流式生成 → SSE 推送 delta → 保存 AI 回复
+5. **手写 Handler + 路由** — `SendMessageStreamHandler` 绕过 goctl 标准 JSON 响应，直接操作 `http.ResponseWriter` 写 SSE；路由注册 `POST /api/v1/conversations/:convId/messages/stream`
+6. **重构** — 提取 `buildChatHistory` 到 `internal/logic/chat/util.go`，供同步/流式 Logic 共享
+
+**SSE 事件协议：**
+
+```
+event: message_start
+data: {"messageId":"uuid","conversationId":123}
+
+event: delta
+data: {"content":"增量token"}
+
+event: message_end
+data: {"messageId":"uuid","model":"gpt-3.5-turbo","tokenCount":150,"latencyMs":2300,"sources":[...]}
+
+event: done
+data: [DONE]
+
+event: error  (异常时)
+data: {"code":1002,"msg":"AI 回复生成失败"}
+```
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `pkg/llm/stream.go` | **新文件** — `ChatCompletionStream` + 流式类型 |
+| `internal/modules/rag/stream.go` | **新文件** — `AnswerStream` + `StreamMeta` |
+| `internal/shared/sse/writer.go` | **新文件** — SSE 事件写入器 + 标准事件结构体 |
+| `internal/logic/chat/util.go` | **新文件** — 提取 `buildChatHistory` 共享函数 |
+| `internal/logic/chat/sendMessageStreamLogic.go` | **新文件** — 流式发送消息业务逻辑 |
+| `internal/handler/chat/sendMessageStreamHandler.go` | **新文件** — SSE Handler（手写，非 goctl） |
+| `internal/logic/chat/sendMessageLogic.go` | 删除 `buildChatHistory`（移至 util.go） |
+| `internal/handler/routes.go` | 新增 `/conversations/:convId/messages/stream` 路由 |
+
+*文档版本：v1.3 | 更新日期：2026-05-10*

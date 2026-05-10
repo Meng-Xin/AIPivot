@@ -14,7 +14,6 @@ import (
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
-	"aipivot/pkg/llm"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -110,15 +109,4 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		Timestamp: time.Now().Unix(),
 		Data:      show,
 	}, nil
-}
-
-// buildChatHistory 将最近消息列表转为 LLM ChatMessage 格式（排除系统消息）。
-func buildChatHistory(msgs []*po.Message) []llm.ChatMessage {
-	history := make([]llm.ChatMessage, 0, len(msgs))
-	for _, m := range msgs {
-		if m.Role == "user" || m.Role == "assistant" {
-			history = append(history, llm.ChatMessage{Role: m.Role, Content: m.Content})
-		}
-	}
-	return history
 }
