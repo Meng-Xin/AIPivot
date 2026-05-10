@@ -15,6 +15,7 @@ import (
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
 
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -51,6 +52,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 
 	// 2. 保存用户消息
 	userMsg := &po.Message{
+		UUID:           uuid.New().String(),
 		ConversationID: req.ConversationID,
 		TenantID:       tenantID,
 		Role:           "user",
@@ -83,6 +85,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 	// 5. 保存 AI 回复消息
 	sourcesJSON, _ := json.Marshal(result.Sources)
 	aiMsg := &po.Message{
+		UUID:           uuid.New().String(),
 		ConversationID: req.ConversationID,
 		TenantID:       tenantID,
 		Role:           "assistant",

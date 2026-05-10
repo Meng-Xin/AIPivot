@@ -30,12 +30,10 @@ func StartWorker(c config.Config, processor *DocumentProcessor) (func(), error) 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(TypeDocumentProcess, processor.ProcessTask)
 
-	// 非阻塞启动 worker
-	go func() {
-		if err := srv.Run(mux); err != nil {
-			logx.Errorf("asynq worker stopped: %v", err)
-		}
-	}()
+	// 非阻塞启动 worker（使用 Start 而非 Run，避免 asynq 拦截 OS signal 导致 HTTP server 无法退出）
+	if err := srv.Start(mux); err != nil {
+		return nil, fmt.Errorf("start asynq worker: %w", err)
+	}
 
 	logx.Infof("asynq worker started — concurrency=%d", c.Worker.Concurrency)
 

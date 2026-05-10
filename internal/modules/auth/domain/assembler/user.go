@@ -6,6 +6,8 @@ import (
 	"aipivot/internal/modules/auth/domain/model"
 	"aipivot/internal/shared/po"
 	"aipivot/internal/types"
+
+	"github.com/google/uuid"
 )
 
 // ① Request → Domain Model
@@ -28,6 +30,7 @@ func RegisterRequestToModelUser(req *types.RegisterRequest) *model.UserAuth {
 // ② Domain Model → PO
 func ModelUserToUserPo(m *model.UserAuth, tenantID int64, encryptedPwd string) *po.User {
 	return &po.User{
+		UUID:     uuid.New().String(),
 		TenantID: tenantID,
 		Email:    m.Email,
 		NickName: m.NickName,

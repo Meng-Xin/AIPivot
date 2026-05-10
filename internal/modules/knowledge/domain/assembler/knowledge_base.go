@@ -4,6 +4,8 @@ import (
 	"aipivot/internal/modules/knowledge/domain/model"
 	"aipivot/internal/shared/po"
 	"aipivot/internal/types"
+
+	"github.com/google/uuid"
 )
 
 // ① Request → Domain Model
@@ -22,6 +24,7 @@ func CreateKBRequestToModel(req *types.CreateKnowledgeBaseRequest) *model.Knowle
 // ② Domain Model → PO
 func ModelKBToKnowledgeBasePo(m *model.KnowledgeBase, tenantID int64) *po.KnowledgeBase {
 	return &po.KnowledgeBase{
+		UUID:        uuid.New().String(),
 		TenantID:    tenantID,
 		Name:        m.Name,
 		Description: m.Description,

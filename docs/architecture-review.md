@@ -250,8 +250,8 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [ ] 知识库模块：文档解析 → 切块 → Embedding → pgvector 存储（异步 pipeline）
 - [ ] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
 - [x] Chat 模块：SSE 流式输出（POST /conversations/:convId/messages/stream）
+- [x] 前端 Chat Widget 原型（React + Vite + TailwindCSS + Zustand + SSE 流式）
 - [ ] LLM Gateway 集成（One API 或自建适配层）
-- [ ] 前端 Chat Widget 原型
 - [ ] 管理后台：知识库 CRUD UI
 
 ### Phase 2 — 增强（4-8 周）
@@ -388,7 +388,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 
 **下一步优先级：**
 1. ~~P1: SSE 流式输出~~ ✅
-2. P1: 前端 Chat Widget 原型
+2. ~~P1: 前端 Chat Widget 原型~~ ✅
 3. P1: 管理后台知识库 CRUD UI
 4. P2: LLM Gateway 多模型路由
 
@@ -435,4 +435,54 @@ data: {"code":1002,"msg":"AI 回复生成失败"}
 | `internal/logic/chat/sendMessageLogic.go` | 删除 `buildChatHistory`（移至 util.go） |
 | `internal/handler/routes.go` | 新增 `/conversations/:convId/messages/stream` 路由 |
 
-*文档版本：v1.3 | 更新日期：2026-05-10*
+### 2026-05-10 Phase 1 P1 — 前端 Chat Widget 原型
+
+**完成内容：**
+
+1. **项目初始化** — `web/` 目录，Vite 6 + React 18 + TypeScript + TailwindCSS 3，Vite proxy 转发 `/api` 到后端 8888 端口
+2. **API 客户端** — `web/src/lib/api.ts`：全量 TypeScript 类型定义（API 响应、SSE 事件）、HTTP 请求封装、**POST SSE 流式解析**（fetch + ReadableStream 逐行解析 SSE 事件）
+3. **状态管理** — Zustand stores：`auth.ts`（JWT + 用户信息 + localStorage 持久化）、`chat.ts`（会话列表、消息列表、流式消息状态机）
+4. **登录页** — `LoginPage.tsx`：登录/注册双 Tab 切换，深色渐变背景 + 毛玻璃卡片，表单校验 + 错误提示
+5. **聊天页** — `ChatPage.tsx` 完整实现：
+   - **侧边栏**：会话列表 + 新建会话 + 用户信息 + 退出登录
+   - **消息面板**：用户/AI 消息气泡（区分样式）、流式打字光标动画、RAG 来源引用标签、消息元信息（模型/耗时）
+   - **输入区**：自动高度 textarea、Enter 发送 / Shift+Enter 换行、流式中禁用
+   - **新建会话弹窗**：可选关联知识库、自定义标题
+6. **SSE 集成** — 发送消息走 `POST /conversations/:convId/messages/stream`，实时渲染增量 token，流结束后提交完整消息到列表
+
+**技术栈：**
+
+| 组件 | 选型 |
+|------|------|
+| 构建工具 | Vite 6 |
+| 框架 | React 18 + TypeScript 5 |
+| 样式 | TailwindCSS 3 |
+| 状态管理 | Zustand 5（persist middleware） |
+| 图标 | Lucide React |
+| API 代理 | Vite dev server proxy |
+
+**新增文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `web/package.json` | 依赖管理 |
+| `web/vite.config.ts` | Vite 配置 + API proxy |
+| `web/tsconfig.json` | TypeScript 配置 |
+| `web/tailwind.config.js` | TailwindCSS 配置 |
+| `web/postcss.config.js` | PostCSS 配置 |
+| `web/index.html` | 入口 HTML |
+| `web/src/main.tsx` | React 入口 |
+| `web/src/App.tsx` | 根组件（登录/聊天路由） |
+| `web/src/index.css` | TailwindCSS + 自定义样式（滚动条、打字光标） |
+| `web/src/lib/api.ts` | API 类型 + HTTP 客户端 + SSE 流解析 |
+| `web/src/store/auth.ts` | 认证 Zustand store |
+| `web/src/store/chat.ts` | 聊天 Zustand store |
+| `web/src/pages/LoginPage.tsx` | 登录/注册页 |
+| `web/src/pages/ChatPage.tsx` | 聊天主页（侧边栏 + 消息面板 + 输入区 + 新建弹窗） |
+
+**下一步优先级：**
+1. P1: 管理后台知识库 CRUD UI
+2. P2: LLM Gateway 多模型路由
+3. P2: Chat Widget 嵌入式 JS 打包
+
+*文档版本：v1.4 | 更新日期：2026-05-10*

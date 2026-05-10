@@ -17,6 +17,7 @@ import (
 	"aipivot/internal/types"
 	"aipivot/internal/worker"
 
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -64,6 +65,7 @@ func (l *UploadDocumentLogic) UploadDocument(req *types.UploadDocumentRequest, r
 
 	// 4. 创建文档记录（status=pending，后续异步处理切块+Embedding）
 	doc := &po.Document{
+		UUID:            uuid.New().String(),
 		KnowledgeBaseID: req.KnowledgeBaseID,
 		TenantID:        tenantID,
 		Name:            header.Filename,

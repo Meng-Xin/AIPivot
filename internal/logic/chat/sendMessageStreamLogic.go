@@ -65,6 +65,7 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 
 	// 保存用户消息
 	userMsg := &po.Message{
+		UUID:           uuid.New().String(),
 		ConversationID: req.ConversationID,
 		TenantID:       tenantID,
 		Role:           "user",

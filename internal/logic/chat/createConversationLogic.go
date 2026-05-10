@@ -14,6 +14,7 @@ import (
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
 
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -37,6 +38,7 @@ func (l *CreateConversationLogic) CreateConversation(req *types.CreateConversati
 	userID := auth.UserIDFromContext(l.ctx)
 
 	conv := &po.Conversation{
+		UUID:     uuid.New().String(),
 		TenantID: tenantID,
 		UserID:   &userID,
 		Title:    req.Title,
