@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"strings"
 
+	"aipivot/internal/modules/agent"
 	"aipivot/internal/modules/knowledge/repo"
 	"aipivot/pkg/llm"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-// Service 是 RAG 编排服务：检索相关切块 → 组装 prompt → 调用 LLM 生成回复。
+// Service 是 RAG 编排服务：检索相关切块 → 组装 prompt → 调用 Agent/LLM 生成回复。
 type Service struct {
 	llmClient *llm.Client
 	chunkRepo repo.DocumentChunkRepository
+	agent     *agent.Agent // Function Calling Agent，nil 时退化为直连 LLM
 
 	// LLM 配置
 	chatModel      string
@@ -31,10 +33,11 @@ type Config struct {
 	Temperature    float64
 }
 
-func NewService(llmClient *llm.Client, chunkRepo repo.DocumentChunkRepository, cfg Config) *Service {
+func NewService(llmClient *llm.Client, chunkRepo repo.DocumentChunkRepository, ag *agent.Agent, cfg Config) *Service {
 	return &Service{
 		llmClient:      llmClient,
 		chunkRepo:      chunkRepo,
+		agent:          ag,
 		chatModel:      cfg.ChatModel,
 		embeddingModel: cfg.EmbeddingModel,
 		maxTokens:      cfg.MaxTokens,
@@ -70,32 +73,67 @@ func (s *Service) Answer(ctx context.Context, kbID int64, question string, histo
 	// 2. 组装 prompt
 	messages := s.buildPrompt(question, contexts, history)
 
-	// 3. 调用 LLM 生成回复（支持 per-conversation 模型选择）
-	resp, err := s.llmClient.ChatCompletion(ctx, &llm.ChatRequest{
-		Model:       s.chatModelOrDefault(model),
-		Messages:    messages,
-		MaxTokens:   s.maxTokens,
-		Temperature: s.temperature,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("LLM chat completion: %w", err)
-	}
+	// 3. 通过 Agent 执行（含 Function Calling ReAct 循环），或直接调用 LLM
+	chatModel := s.chatModelOrDefault(model)
+	var content, usedModel string
+	var tokenCount int
+	var toolUses []agent.ToolUseRecord
 
-	if len(resp.Choices) == 0 {
-		return nil, fmt.Errorf("LLM returned empty choices")
+	if s.agent != nil && s.agent.HasTools() {
+		// Agent 模式：ReAct 循环可能调用工具后再生成回复
+		result, err := s.agent.Run(ctx, &agent.RunRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("agent run: %w", err)
+		}
+		content = result.Content
+		usedModel = result.Model
+		if result.Usage != nil {
+			tokenCount = result.Usage.TotalTokens
+		}
+		toolUses = result.ToolUses
+	} else {
+		// 直连 LLM 模式（无 Agent 或无工具时退化）
+		resp, err := s.llmClient.ChatCompletion(ctx, &llm.ChatRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("LLM chat completion: %w", err)
+		}
+		if len(resp.Choices) == 0 {
+			return nil, fmt.Errorf("LLM returned empty choices")
+		}
+		content = resp.Choices[0].Message.Content
+		usedModel = resp.Model
+		tokenCount = resp.Usage.TotalTokens
 	}
 
 	// 4. 构建来源引用列表
-	sources := make([]string, 0, len(contexts))
+	sources := make([]string, 0, len(contexts)+len(toolUses))
 	for _, c := range contexts {
 		sources = append(sources, fmt.Sprintf("chunk_%d(score=%.2f)", c.ChunkIndex, c.Score))
 	}
+	// 追加工具调用记录到来源
+	if len(toolUses) > 0 {
+		for _, tu := range toolUses {
+			sources = append(sources, fmt.Sprintf("tool:%s", tu.Name))
+		}
+		logx.WithContext(ctx).Infof("RAG answer used %d tool(s)", len(toolUses))
+	}
 
 	return &AnswerResult{
-		Content:    resp.Choices[0].Message.Content,
-		Model:      resp.Model,
-		TokenCount: resp.Usage.TotalTokens,
+		Content:    content,
+		Model:      usedModel,
+		TokenCount: tokenCount,
 		Sources:    sources,
+		ToolUses:   toolUses,
 	}, nil
 }
 
@@ -159,10 +197,11 @@ func (s *Service) buildPrompt(question string, contexts []RetrievedChunk, histor
 
 // AnswerResult RAG 回答结果。
 type AnswerResult struct {
-	Content    string   // AI 回复内容
-	Model      string   // 使用的 LLM 模型
-	TokenCount int      // 总 token 消耗
-	Sources    []string // 来源引用
+	Content    string                // AI 回复内容
+	Model      string                // 使用的 LLM 模型
+	TokenCount int                   // 总 token 消耗
+	Sources    []string              // 来源引用
+	ToolUses   []agent.ToolUseRecord // 工具调用记录（Agent 模式下可能非空）
 }
 
 // RetrievedChunk 检索到的切块信息。

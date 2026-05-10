@@ -63,6 +63,35 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		return
 	}
 
+	// 人工接管状态：仅保存用户消息，通知前端当前为人工服务模式
+	if conv.Status == "waiting_human" {
+		userMsg := &po.Message{
+			UUID:           uuid.New().String(),
+			ConversationID: req.ConversationID,
+			TenantID:       tenantID,
+			Role:           "user",
+			Content:        req.Content,
+			ContentType:    req.ContentType,
+		}
+		if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
+			l.Logger.Errorf("SendMessageStream CreateUserMsg(waiting_human) err: %v", err)
+			sseWriter.WriteError(errorx.CodeFailed, "发送消息失败")
+			return
+		}
+		_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+		// 告知前端当前是人工服务模式，消息已保存但不会有 AI 回复
+		_ = sseWriter.WriteEvent("message_start", sse.MessageStart{
+			MessageID:      userMsg.UUID,
+			ConversationID: req.ConversationID,
+		})
+		_ = sseWriter.WriteEvent("delta", sse.Delta{Content: "当前会话已转接人工客服，您的消息已发送，请稍候。"})
+		_ = sseWriter.WriteEvent("message_end", sse.MessageEnd{
+			MessageID: userMsg.UUID,
+		})
+		_ = sseWriter.WriteDone()
+		return
+	}
+
 	// 保存用户消息
 	userMsg := &po.Message{
 		UUID:           uuid.New().String(),
@@ -171,4 +200,15 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 	// 更新会话消息计数（+2: 用户消息 + AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+
+	// Agent 触发的自动转接：检查工具调用中是否包含 escalate_to_human
+	for _, tu := range meta.ToolUses {
+		if tu.Name == "escalate_to_human" {
+			if statusErr := l.svcCtx.ConversationRepo.UpdateStatus(l.ctx, req.ConversationID, "waiting_human"); statusErr != nil {
+				l.Logger.Errorf("SendMessageStream auto-escalate err: %v", statusErr)
+			}
+			l.Logger.Infof("conversation %d auto-escalated by agent (stream)", req.ConversationID)
+			break
+		}
+	}
 }

@@ -86,6 +86,17 @@ func (d *ConversationDao) Close(ctx context.Context, id int64) error {
 	return nil
 }
 
+// UpdateStatus 更新会话状态（如 active → waiting_human → resolved）。
+func (d *ConversationDao) UpdateStatus(ctx context.Context, id int64, status string) error {
+	c := d.q.Conversation
+	_, err := c.WithContext(ctx).Where(c.ID.Eq(id)).Update(c.Status, status)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("ConversationDao.UpdateStatus err: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (d *ConversationDao) IncrMessageCount(ctx context.Context, id int64) error {
 	c := d.q.Conversation
 	_, err := c.WithContext(ctx).Where(c.ID.Eq(id)).UpdateSimple(c.MessageCount.Add(1))

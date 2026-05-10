@@ -7,6 +7,11 @@ type CloseConversationRequest struct {
 	ID int64 `path:"id"`
 }
 
+type EscalateConversationRequest struct {
+	ID     int64  `path:"id"`
+	Reason string `json:"reason,optional"` // 转接原因（可选）
+}
+
 type CommResponse struct {
 	Code      int32  `json:"code,example=0"`                  // 业务状态码，0 表示成功
 	Msg       string `json:"msg,example=OK"`                  // 响应消息

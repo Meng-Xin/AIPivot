@@ -31,6 +31,10 @@ func (r *ConversationRepo) Close(ctx context.Context, id int64) error {
 	return r.convDao.Close(ctx, id)
 }
 
+func (r *ConversationRepo) UpdateStatus(ctx context.Context, id int64, status string) error {
+	return r.convDao.UpdateStatus(ctx, id, status)
+}
+
 func (r *ConversationRepo) IncrMessageCount(ctx context.Context, id int64) error {
 	return r.convDao.IncrMessageCount(ctx, id)
 }

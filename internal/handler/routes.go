@@ -81,6 +81,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/conversations/:id/close",
 					Handler: chat.CloseConversationHandler(serverCtx),
 				},
+				{
+					// 转接人工客服
+					Method:  http.MethodPut,
+					Path:    "/conversations/:id/escalate",
+					Handler: chat.EscalateConversationHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),

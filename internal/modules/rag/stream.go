@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"aipivot/internal/modules/agent"
 	"aipivot/pkg/llm"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-// StreamMeta 流式问答的同步可用元数据（检索来源等，在流开始前即可获得）。
+// StreamMeta 流式问答的同步可用元数据（检索来源、工具调用记录等，在流开始前即可获得）。
 type StreamMeta struct {
-	Sources []string
+	Sources  []string
+	ToolUses []agent.ToolUseRecord
 }
 
 // AnswerStream 执行 RAG 流式问答：retrieve → prompt → stream generate。
@@ -33,21 +35,46 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 
 	messages := s.buildPrompt(question, contexts, history)
 
-	// 流式调用 LLM（区别于同步 Answer 使用 ChatCompletion）
-	stream, err := s.llmClient.ChatCompletionStream(ctx, &llm.ChatRequest{
-		Model:       s.chatModelOrDefault(model),
-		Messages:    messages,
-		MaxTokens:   s.maxTokens,
-		Temperature: s.temperature,
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("LLM stream chat: %w", err)
+	// 通过 Agent 流式执行（有工具时同步处理 tool calls，无工具时直接流式）
+	chatModel := s.chatModelOrDefault(model)
+	var stream <-chan llm.StreamEvent
+	var toolUses []agent.ToolUseRecord
+
+	if s.agent != nil && s.agent.HasTools() {
+		var agentMeta *agent.StreamMeta
+		var agentErr error
+		stream, agentMeta, agentErr = s.agent.RunStream(ctx, &agent.RunRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+		})
+		if agentErr != nil {
+			return nil, nil, fmt.Errorf("agent stream: %w", agentErr)
+		}
+		if agentMeta != nil {
+			toolUses = agentMeta.ToolUses
+		}
+	} else {
+		var streamErr error
+		stream, streamErr = s.llmClient.ChatCompletionStream(ctx, &llm.ChatRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+		})
+		if streamErr != nil {
+			return nil, nil, fmt.Errorf("LLM stream chat: %w", streamErr)
+		}
 	}
 
-	sources := make([]string, 0, len(contexts))
+	sources := make([]string, 0, len(contexts)+len(toolUses))
 	for _, c := range contexts {
 		sources = append(sources, fmt.Sprintf("chunk_%d(score=%.2f)", c.ChunkIndex, c.Score))
 	}
+	for _, tu := range toolUses {
+		sources = append(sources, fmt.Sprintf("tool:%s", tu.Name))
+	}
 
-	return stream, &StreamMeta{Sources: sources}, nil
+	return stream, &StreamMeta{Sources: sources, ToolUses: toolUses}, nil
 }

@@ -11,6 +11,7 @@ type ConversationRepository interface {
 	GetByID(ctx context.Context, id int64) (*po.Conversation, error)
 	GetList(ctx context.Context, tenantID int64, page, pageSize int, status string) ([]*po.Conversation, int64, error)
 	Close(ctx context.Context, id int64) error
+	UpdateStatus(ctx context.Context, id int64, status string) error
 	IncrMessageCount(ctx context.Context, id int64) error
 }
 

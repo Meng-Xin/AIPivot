@@ -237,7 +237,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] JWT 鉴权中间件
 - [x] 项目目录重构为模块化结构
 
-### Phase 1 — MVP 核心（2-4 周） 🚧 进行中
+### Phase 1 — MVP 核心（2-4 周） ✅ 已完成
 - [x] 用户注册接口（auth.api + RegisterLogic 实现）
 - [x] 知识库数据库表设计（migration 002: knowledge_bases / documents / document_chunks + pgvector HNSW 索引）
 - [x] 对话数据库表设计（migration 003: conversations / messages）
@@ -247,16 +247,16 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] JWT 鉴权中间件集成（knowledge/chat 路由组通过 AuthMiddleware 保护）
 - [x] GORM Gen 代码生成覆盖所有新表（KnowledgeBase/Document/DocumentChunk/Conversation/Message）
 - [x] ServiceContext 完成全模块 DI 组装（Auth + Knowledge + Chat Repo 注入）
-- [ ] 知识库模块：文档解析 → 切块 → Embedding → pgvector 存储（异步 pipeline）
-- [ ] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
+- [x] 知识库模块：文档解析 → 切块 → Embedding → pgvector 存储（异步 pipeline）
+- [x] RAG 模块：Eino Retriever(pgvector) → Rerank → ChatModel 生成
 - [x] Chat 模块：SSE 流式输出（POST /conversations/:convId/messages/stream）
 - [x] 前端 Chat Widget 原型（React + Vite + TailwindCSS + Zustand + SSE 流式）
 - [x] LLM Gateway 多模型路由（配置驱动模型列表 + GET /api/v1/models + per-conversation 模型选择）
 - [x] 管理后台：知识库 CRUD UI
 
-### Phase 2 — 增强（4-8 周）
-- [ ] Agent/Skill 框架 + Function Calling
-- [ ] 人工客服转接
+### Phase 2 — 增强（4-8 周） 🚧 进行中
+- [x] Agent/Skill 框架 + Function Calling
+- [x] 人工客服转接
 - [ ] 多渠道接入（API/Webhook 优先）
 - [ ] 对话分析仪表盘
 - [ ] LLM 成本追踪与限流
@@ -349,6 +349,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 | Chat | GET | /api/v1/conversations | ✅ |
 | Chat | GET | /api/v1/conversations/:id | ✅ |
 | Chat | PUT | /api/v1/conversations/:id/close | ✅ |
+| Chat | PUT | /api/v1/conversations/:id/escalate | ✅ |
 | Chat | POST | /api/v1/conversations/:convId/messages | ✅ |
 | Chat | GET | /api/v1/conversations/:convId/messages | ✅ |
 | Infra | GET | /healthz, /readyz, /metrics, /v1/ping | ❌ |
@@ -543,4 +544,83 @@ data: {"code":1002,"msg":"AI 回复生成失败"}
 | `web/src/lib/api.ts` | 新增 `ShowModel`/`ModelListData`/`listModels` + `createConversation` 增加 model 参数 |
 | `web/src/pages/ChatPage.tsx` | 新建会话弹窗增加 AI 模型选择器 |
 
-*文档版本：v1.6 | 更新日期：2026-05-10*
+### 2026-05-10 Phase 2 — Agent/Skill 框架 + Function Calling
+
+**完成内容：**
+
+1. **LLM Function Calling 类型扩展** — `pkg/llm/client.go` 新增 `ToolDefinition`/`FunctionDefinition`/`ToolCall`/`FunctionCall` 类型；`ChatMessage` 增加 `ToolCalls`/`ToolCallID`/`Name` 字段；`ChatRequest` 增加 `Tools`/`ToolChoice`；`ChatChoice` 增加 `FinishReason`
+2. **Tool 抽象层** — `internal/modules/agent/tool.go` 定义 `Tool` 接口（Name/Description/Definition/Execute）+ `ToolUseRecord` 记录结构
+3. **Tool Registry** — `internal/modules/agent/registry.go` 管理工具注册、导出定义、按名执行，并发安全
+4. **Agent 编排器** — `internal/modules/agent/agent.go` 实现 ReAct 循环：调用 LLM → 检测 tool_calls → 执行工具 → 回传结果 → 循环直到文本回复；支持 `Run`（同步）和 `RunStream`（流式，无工具时真流式，有工具时同步 loop + 包装 stream）；`maxRounds` 防止无限循环
+5. **内置工具** — 3 个示例工具（`internal/modules/agent/tools/`）：
+   - `WeatherTool`：天气查询（Mock 实现，验证链路）
+   - `TimeTool`：当前日期时间（支持时区参数）
+   - `CalculatorTool`：数学计算（四则运算 + 幂 + sqrt/abs/round）
+6. **RAG 集成** — `rag.Service` 新增 `agent` 字段，`Answer`/`AnswerStream` 当 Agent 有工具时走 Agent 路径，否则退化为直连 LLM；`AnswerResult`/`StreamMeta` 增加 `ToolUses` 字段
+7. **配置 + DI** — `AgentConf`（Enabled/MaxRounds）；`ServiceContext` 组装 Registry→注册工具→创建 Agent→注入 RAG Service
+8. **单元测试** — Agent 测试（无工具/工具调用/最大轮数限制/未知工具）+ Tools 测试（天气/时间/计算器正常和异常路径），全部通过
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `pkg/llm/client.go` | 新增 Function Calling 类型 + 扩展 ChatMessage/ChatRequest/ChatChoice |
+| `internal/modules/agent/tool.go` | **新文件** — Tool 接口 + ToolUseRecord |
+| `internal/modules/agent/registry.go` | **新文件** — 工具注册表 |
+| `internal/modules/agent/agent.go` | **新文件** — Agent ReAct 编排器（Run + RunStream） |
+| `internal/modules/agent/agent_test.go` | **新文件** — Agent 单元测试 |
+| `internal/modules/agent/tools/weather.go` | **新文件** — 天气查询工具 |
+| `internal/modules/agent/tools/time_tool.go` | **新文件** — 时间查询工具 |
+| `internal/modules/agent/tools/calculator.go` | **新文件** — 数学计算工具 |
+| `internal/modules/agent/tools/tools_test.go` | **新文件** — Tools 单元测试 |
+| `internal/modules/rag/service.go` | 集成 Agent，新增 agent 字段 + ToolUses 字段 |
+| `internal/modules/rag/stream.go` | 集成 Agent 流式路径 |
+| `internal/config/config.go` | 新增 `AgentConf` |
+| `etc/aipivot-api.yaml` | 新增 Agent 配置段 |
+| `internal/svc/servicecontext.go` | Agent DI 组装：Registry + Tools + Agent + 注入 RAG |
+
+**下一步优先级：**
+1. P2: 人工客服转接
+2. P2: 多渠道接入（API/Webhook 优先）
+3. P2: 对话分析仪表盘
+
+### 2026-05-10 Phase 2 — 人工客服转接
+
+**完成内容：**
+
+1. **EscalationTool** — `internal/modules/agent/tools/escalation.go` 新增 `escalate_to_human` 工具，Agent 可在无法回答或用户要求转人工时主动触发转接
+2. **手动转接 API** — `PUT /api/v1/conversations/:id/escalate`：用户或管理员手动触发转接，校验会话状态 + 租户权限，更新为 `waiting_human`
+3. **状态流转** — `ConversationDao.UpdateStatus` + `ConversationRepository.UpdateStatus` 实现 `active → waiting_human` 状态转换
+4. **同步路径适配** — `SendMessageLogic`：当 `status=waiting_human` 时仅保存用户消息不调用 AI；AI 回复后检测 `ToolUses` 中是否包含 `escalate_to_human`，自动更新状态
+5. **流式路径适配** — `SendMessageStreamLogic`：同上，`waiting_human` 时通过 SSE 通知前端当前为人工模式；流结束后检测 Agent 自动转接
+6. **ServiceContext** — 注册 `EscalationTool` 到 Agent Registry
+
+**状态流转图：**
+```
+active ────────────────────────────────→ closed
+  │                                     ↑
+  ├─ 手动 PUT /escalate ───────────────────┼─ PUT /close
+  │                                     │
+  └─ Agent escalate_to_human ─▶ waiting_human
+```
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `internal/modules/agent/tools/escalation.go` | **新文件** — EscalationTool（Agent 主动转接） |
+| `api/chat.api` | 新增 `EscalateConversationRequest` + `PUT /conversations/:id/escalate` |
+| `internal/types/types.go` | 新增 `EscalateConversationRequest` |
+| `internal/handler/chat/escalateConversationHandler.go` | **新文件** — 转接 Handler |
+| `internal/logic/chat/escalateConversationLogic.go` | **新文件** — 转接业务逻辑 |
+| `internal/handler/routes.go` | 新增 escalate 路由 |
+| `internal/logic/chat/sendMessageLogic.go` | 增加 waiting_human 状态处理 + 自动转接检测 |
+| `internal/logic/chat/sendMessageStreamLogic.go` | 增加 waiting_human 状态处理 + 自动转接检测 |
+| `internal/svc/servicecontext.go` | 注册 EscalationTool |
+
+**下一步优先级：**
+1. P2: 多渠道接入（API/Webhook 优先）
+2. P2: 对话分析仪表盘
+3. P2: LLM 成本追踪与限流
+
+*文档版本：v1.8 | 更新日期：2026-05-10*

@@ -13,6 +13,7 @@ type Config struct {
 	Migration MigrationConf
 	LLM       LLMConf
 	Worker    WorkerConf
+	Agent     AgentConf
 }
 
 type AuthConf struct {
@@ -83,4 +84,10 @@ type ModelOption struct {
 type WorkerConf struct {
 	Enabled     bool `json:",default=true"`
 	Concurrency int  `json:",default=5"`
+}
+
+// AgentConf Function Calling Agent 配置
+type AgentConf struct {
+	Enabled   bool `json:",default=true"` // 是否启用 Agent（false 时退化为纯 LLM）
+	MaxRounds int  `json:",default=5"`    // ReAct 循环最大轮数，防止无限工具调用
 }

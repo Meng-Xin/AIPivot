@@ -8,6 +8,8 @@ import (
 	"aipivot/internal/config"
 	"aipivot/internal/infra"
 	"aipivot/internal/middleware"
+	"aipivot/internal/modules/agent"
+	"aipivot/internal/modules/agent/tools"
 	authRepo "aipivot/internal/modules/auth/repo"
 	authDao "aipivot/internal/modules/auth/repo/dao"
 	chatRepo "aipivot/internal/modules/chat/repo"
@@ -99,8 +101,19 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	// Document Chunk Repo
 	chunkRepo := kbRepo.NewDocumentChunkRepo(documentChunkDao)
 
-	// RAG Service
-	ragService := rag.NewService(llmClient, chunkRepo, rag.Config{
+	// Agent (Function Calling)
+	var ag *agent.Agent
+	if c.Agent.Enabled {
+		registry := agent.NewRegistry()
+		registry.Register(tools.NewWeatherTool())
+		registry.Register(tools.NewTimeTool())
+		registry.Register(tools.NewCalculatorTool())
+		registry.Register(tools.NewEscalationTool())
+		ag = agent.NewAgent(llmClient, registry, c.Agent.MaxRounds)
+	}
+
+	// RAG Service（注入 Agent，nil 时退化为纯 LLM）
+	ragService := rag.NewService(llmClient, chunkRepo, ag, rag.Config{
 		ChatModel:      c.LLM.ChatModel,
 		EmbeddingModel: c.LLM.EmbeddingModel,
 		MaxTokens:      c.LLM.MaxTokens,

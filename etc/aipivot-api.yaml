@@ -82,3 +82,7 @@ LLM:
 Worker:
   Enabled: true
   Concurrency: 5
+
+Agent:
+  Enabled: true
+  MaxRounds: 5

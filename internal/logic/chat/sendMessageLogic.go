@@ -50,6 +50,31 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		return nil, errorx.NewBusinessError(errorx.CodeFailed, "会话已关闭，无法发送消息")
 	}
 
+	// 人工接管状态：仅保存用户消息，不调用 AI
+	if conv.Status == "waiting_human" {
+		userMsg := &po.Message{
+			UUID:           uuid.New().String(),
+			ConversationID: req.ConversationID,
+			TenantID:       tenantID,
+			Role:           "user",
+			Content:        req.Content,
+			ContentType:    req.ContentType,
+		}
+		if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
+			l.Logger.Errorf("SendMessage CreateUserMsg(waiting_human) err: %v", err)
+			return nil, errorx.NewInternalError("发送消息失败")
+		}
+		_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+
+		show := assembler.MessagePoToShow(userMsg)
+		return &types.SendMessageResponse{
+			Code:      0,
+			Msg:       "OK",
+			Timestamp: time.Now().Unix(),
+			Data:      show,
+		}, nil
+	}
+
 	// 2. 保存用户消息
 	userMsg := &po.Message{
 		UUID:           uuid.New().String(),
@@ -104,6 +129,17 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 	// 6. 更新会话消息计数（+2: 用户消息 + AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+
+	// 7. Agent 触发的自动转接：检查工具调用中是否包含 escalate_to_human
+	for _, tu := range result.ToolUses {
+		if tu.Name == "escalate_to_human" {
+			if err := l.svcCtx.ConversationRepo.UpdateStatus(l.ctx, req.ConversationID, "waiting_human"); err != nil {
+				l.Logger.Errorf("SendMessage auto-escalate UpdateStatus err: %v", err)
+			}
+			l.Logger.Infof("conversation %d auto-escalated by agent", req.ConversationID)
+			break
+		}
+	}
 
 	show := assembler.MessagePoToShow(aiMsg)
 	return &types.SendMessageResponse{

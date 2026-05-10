@@ -46,6 +46,12 @@ type (
 		ID int64 `path:"id"`
 	}
 
+	// EscalateConversationRequest 转接人工客服
+	EscalateConversationRequest {
+		ID     int64  `path:"id"`
+		Reason string `json:"reason,optional"` // 转接原因（可选）
+	}
+
 	// ConversationListData 会话列表数据
 	ConversationListData {
 		Total int64              `json:"total"`
@@ -144,6 +150,10 @@ service aipivot-api {
 	@doc "关闭会话"
 	@handler CloseConversation
 	put /conversations/:id/close (CloseConversationRequest) returns (CommResponse)
+
+	@doc "转接人工客服"
+	@handler EscalateConversation
+	put /conversations/:id/escalate (EscalateConversationRequest) returns (CommResponse)
 
 	@doc "发送消息（同步模式，MVP 阶段）"
 	@handler SendMessage

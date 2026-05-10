@@ -30,21 +30,55 @@ func NewClient(baseURL, apiKey string, timeoutSec int) *Client {
 // ========== Chat Completion ==========
 
 type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string     `json:"role"`
+	Content    string     `json:"content"`
+	Name       string     `json:"name,omitempty"`         // 函数名（role=tool 时标识来源）
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`   // LLM 发起的工具调用列表（role=assistant）
+	ToolCallID string     `json:"tool_call_id,omitempty"` // 对应的 tool_call ID（role=tool）
 }
 
 type ChatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []ChatMessage `json:"messages"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
-	Temperature float64       `json:"temperature,omitempty"`
-	Stream      bool          `json:"stream,omitempty"`
+	Model       string           `json:"model"`
+	Messages    []ChatMessage    `json:"messages"`
+	MaxTokens   int              `json:"max_tokens,omitempty"`
+	Temperature float64          `json:"temperature,omitempty"`
+	Stream      bool             `json:"stream,omitempty"`
+	Tools       []ToolDefinition `json:"tools,omitempty"`       // Function Calling 工具定义列表
+	ToolChoice  interface{}      `json:"tool_choice,omitempty"` // "auto" / "none" / 指定工具
 }
 
 type ChatChoice struct {
-	Index   int         `json:"index"`
-	Message ChatMessage `json:"message"`
+	Index        int         `json:"index"`
+	Message      ChatMessage `json:"message"`
+	FinishReason string      `json:"finish_reason"` // stop / length / tool_calls
+}
+
+// ========== Function Calling ==========
+
+// ToolDefinition OpenAI tools 参数中的单个工具定义。
+type ToolDefinition struct {
+	Type     string             `json:"type"` // 固定为 "function"
+	Function FunctionDefinition `json:"function"`
+}
+
+// FunctionDefinition 函数定义：名称、描述、参数 JSON Schema。
+type FunctionDefinition struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Parameters  interface{} `json:"parameters"` // JSON Schema 对象
+}
+
+// ToolCall LLM 返回的工具调用指令。
+type ToolCall struct {
+	ID       string       `json:"id"`
+	Type     string       `json:"type"` // "function"
+	Function FunctionCall `json:"function"`
+}
+
+// FunctionCall 工具调用中的函数名 + 参数（JSON 字符串）。
+type FunctionCall struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"` // JSON 编码的参数
 }
 
 type ChatUsage struct {
