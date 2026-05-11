@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"aipivot/internal/modules/agent"
-	"aipivot/internal/modules/knowledge/repo"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/pkg/llm"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -15,7 +15,7 @@ import (
 // Service 是 RAG 编排服务：检索相关切块 → 组装 prompt → 调用 Agent/LLM 生成回复。
 type Service struct {
 	llmClient *llm.Client
-	chunkRepo repo.DocumentChunkRepository
+	chunkRepo knowledge.DocChunkRepository
 	agent     *agent.Agent // Function Calling Agent，nil 时退化为直连 LLM
 
 	// LLM 配置
@@ -33,7 +33,7 @@ type Config struct {
 	Temperature    float64
 }
 
-func NewService(llmClient *llm.Client, chunkRepo repo.DocumentChunkRepository, ag *agent.Agent, cfg Config) *Service {
+func NewService(llmClient *llm.Client, chunkRepo knowledge.DocChunkRepository, ag *agent.Agent, cfg Config) *Service {
 	return &Service{
 		llmClient:      llmClient,
 		chunkRepo:      chunkRepo,

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/chat/domain/assembler"
+	chatmod "aipivot/internal/modules/chat"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
@@ -65,7 +65,7 @@ func (l *CreateConversationLogic) CreateConversation(req *types.CreateConversati
 		return nil, errorx.NewInternalError("创建会话失败")
 	}
 
-	show := assembler.ConversationPoToShow(conv)
+	show := chatmod.ToShowConversation(conv)
 	return &types.ConversationDetailResponse{
 		Code:      0,
 		Msg:       "创建成功",

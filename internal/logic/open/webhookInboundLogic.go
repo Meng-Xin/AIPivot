@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/middleware"
+	"aipivot/internal/modules/auth"
 	"aipivot/internal/modules/channel"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/shared/po"
@@ -36,7 +36,7 @@ func NewWebhookInboundLogic(ctx context.Context, svcCtx *svc.ServiceContext) *We
 
 // WebhookInbound 处理入站 Webhook 消息：验证 → 查找/创建会话 → 保存用户消息 → RAG 生成 → 保存 AI 回复。
 func (l *WebhookInboundLogic) WebhookInbound(req *types.WebhookInboundRequest) (resp *types.WebhookInboundResponse, err error) {
-	tenantID := middleware.TenantIDFromAPIKeyContext(l.ctx)
+	tenantID := auth.TenantIDFromAPIKeyContext(l.ctx)
 	if tenantID == 0 {
 		return nil, errorx.NewUnauthError("invalid API key context")
 	}

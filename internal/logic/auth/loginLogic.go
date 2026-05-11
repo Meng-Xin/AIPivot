@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/auth/domain/assembler"
-	"aipivot/internal/modules/auth/repo"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -32,19 +30,16 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 }
 
 func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, err error) {
-	// 1. Request → Domain Model
-	userModel := assembler.LoginRequestToModelUser(req)
-
-	// 2. 领域校验
-	if err = userModel.CheckEmail(); err != nil {
+	// 1. 校验
+	if err = auth.ValidateEmail(req.Email); err != nil {
 		return nil, errorx.NewInternalError(err.Error())
 	}
-	if err = userModel.CheckPassword(); err != nil {
+	if err = auth.ValidatePassword(req.Password); err != nil {
 		return nil, errorx.NewInternalError(err.Error())
 	}
 
-	// 3. 通过 Repo 查询用户（MVP: 使用 default 租户）
-	user, err := l.getUserRepo().GetByEmail(l.ctx, l.getDefaultTenantID(), userModel.Email)
+	// 2. 通过 Repo 查询用户（MVP: 使用 default 租户）
+	user, err := l.svcCtx.UserRepo.GetByEmail(l.ctx, l.getDefaultTenantID(), req.Email)
 	if err != nil {
 		l.Logger.Errorf("Login GetByEmail err: %v", err)
 		return nil, errorx.NewInternalError("登录失败")
@@ -53,8 +48,8 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		return nil, errorx.NewBusinessError(errorx.CodeUnauth, "用户不存在或密码错误")
 	}
 
-	// 4. 密码验证（Domain Model 行为方法）
-	if !userModel.CheckPasswordMatch(user.Password) {
+	// 3. 密码验证
+	if !auth.CheckPasswordMatch(req.Password, user.Password) {
 		return nil, errorx.NewBusinessError(errorx.CodeUnauth, "用户不存在或密码错误")
 	}
 
@@ -65,23 +60,19 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		return nil, errorx.NewInternalError("登录失败")
 	}
 
-	// 6. 更新最后登录时间（非关键操作，失败仅记录日志）
-	if updateErr := l.getUserRepo().UpdateLastLogin(l.ctx, user.ID); updateErr != nil {
+	// 5. 更新最后登录时间（非关键操作，失败仅记录日志）
+	if updateErr := l.svcCtx.UserRepo.UpdateLastLogin(l.ctx, user.ID); updateErr != nil {
 		l.Logger.Errorf("Login UpdateLastLogin err: %v", updateErr)
 	}
 
-	// 7. assembler 转换 PO → 响应
-	loginData := assembler.UserPoToLoginData(user, token)
+	// 6. PO → 响应
+	loginData := auth.ToLoginData(user, token)
 	return &types.LoginResponse{
 		Code:      0,
 		Msg:       "登录成功",
 		Timestamp: time.Now().Unix(),
 		Data:      loginData,
 	}, nil
-}
-
-func (l *LoginLogic) getUserRepo() repo.UserRepository {
-	return l.svcCtx.UserRepo
 }
 
 func (l *LoginLogic) getDefaultTenantID() int64 {

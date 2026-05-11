@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/chat/domain/assembler"
+	chatmod "aipivot/internal/modules/chat"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -46,7 +46,7 @@ func (l *ListConversationLogic) ListConversation(req *types.ListConversationRequ
 		Timestamp: time.Now().Unix(),
 		Data: types.ConversationListData{
 			Total: total,
-			List:  assembler.ConversationPoListToShowList(list),
+			List:  chatmod.ToShowConversationList(list),
 		},
 	}, nil
 }

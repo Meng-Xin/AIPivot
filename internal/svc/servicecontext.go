@@ -10,15 +10,16 @@ import (
 	"aipivot/internal/middleware"
 	"aipivot/internal/modules/agent"
 	"aipivot/internal/modules/agent/tools"
-	authRepo "aipivot/internal/modules/auth/repo"
-	authDao "aipivot/internal/modules/auth/repo/dao"
+	"aipivot/internal/modules/auth"
 	"aipivot/internal/modules/channel/webhook"
-	chatRepo "aipivot/internal/modules/chat/repo"
-	chatDao "aipivot/internal/modules/chat/repo/dao"
-	kbRepo "aipivot/internal/modules/knowledge/repo"
-	kbDao "aipivot/internal/modules/knowledge/repo/dao"
+	"aipivot/internal/modules/chat"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/modules/rag"
 	"aipivot/internal/observability"
+	authrepo "aipivot/internal/repository/auth"
+	chatrepo "aipivot/internal/repository/chat"
+	knowledgerepo "aipivot/internal/repository/knowledge"
+	webhookrepo "aipivot/internal/repository/webhook"
 	"aipivot/internal/shared/query"
 	"aipivot/pkg/llm"
 
@@ -41,20 +42,20 @@ type ServiceContext struct {
 	ApiKeyMiddleware func(http.HandlerFunc) http.HandlerFunc // Open API 使用 API Key 认证
 
 	// Auth Repo
-	UserRepo   authRepo.UserRepository
-	TenantRepo authRepo.TenantRepository
-	ApiKeyRepo authRepo.ApiKeyRepository
+	UserRepo   auth.UserRepository
+	TenantRepo auth.TenantRepository
+	ApiKeyRepo auth.ApiKeyRepository
 
 	// Knowledge Repo
-	KnowledgeBaseRepo kbRepo.KnowledgeBaseRepository
-	DocumentRepo      kbRepo.DocumentRepository
+	KnowledgeBaseRepo knowledge.KBRepository
+	DocumentRepo      knowledge.DocumentRepository
 
 	// Knowledge Chunk Repo
-	DocumentChunkRepo kbRepo.DocumentChunkRepository
+	DocumentChunkRepo knowledge.DocChunkRepository
 
 	// Chat Repo
-	ConversationRepo chatRepo.ConversationRepository
-	MessageRepo      chatRepo.MessageRepository
+	ConversationRepo chat.ConversationRepository
+	MessageRepo      chat.MessageRepository
 
 	// Webhook
 	WebhookRepo     webhook.Repository
@@ -86,35 +87,20 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	redisClient := infra.NewRedis(c.Redis)
 	metrics := observability.NewMetrics(prometheus.NewRegistry())
 
-	// DB → Query → DAO → Repo(接口) 组装链路
+	// DB → Query → Repo（1 步构造链路）
 	q := query.Use(db)
 
-	// Auth DAOs
-	userDao := authDao.NewUserDao(q)
-	tenantDao := authDao.NewTenantDao(q)
+	// Auth Repos
+	apiKeyRepo := authrepo.NewApiKeyRepo(q)
 
-	// Knowledge DAOs
-	knowledgeBaseDao := kbDao.NewKnowledgeBaseDao(q)
-	documentDao := kbDao.NewDocumentDao(q)
-	documentChunkDao := kbDao.NewDocumentChunkDao(q, db)
-
-	// Auth: API Key DAO
-	apiKeyDao := authDao.NewApiKeyDao(q)
-	apiKeyRepo := authRepo.NewApiKeyRepo(apiKeyDao)
-
-	// Chat DAOs
-	conversationDao := chatDao.NewConversationDao(q)
-	messageDao := chatDao.NewMessageDao(q)
-
-	// Webhook DAO + Repo
-	webhookDao := webhook.NewWebhookDao(q, db)
-	webhookRepo := webhook.NewWebhookRepo(webhookDao)
+	// Webhook Repo
+	wbRepo := webhookrepo.NewWebhookRepo(q, db)
 
 	// LLM Client (OpenAI-compatible, 支持 One API)
 	llmClient := llm.NewClient(c.LLM.BaseURL, c.LLM.APIKey, c.LLM.TimeoutSeconds)
 
-	// Document Chunk Repo
-	chunkRepo := kbRepo.NewDocumentChunkRepo(documentChunkDao)
+	// Knowledge Repos
+	chunkRepo := knowledgerepo.NewDocChunkRepo(q, db)
 
 	// Agent (Function Calling)
 	var ag *agent.Agent
@@ -151,22 +137,22 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		ApiKeyMiddleware: middleware.NewApiKeyMiddleware(apiKeyRepo).Handle,
 
 		// Auth
-		UserRepo:   authRepo.NewUserRepo(userDao),
-		TenantRepo: authRepo.NewTenantRepo(tenantDao),
+		UserRepo:   authrepo.NewUserRepo(q),
+		TenantRepo: authrepo.NewTenantRepo(q),
 		ApiKeyRepo: apiKeyRepo,
 
 		// Knowledge
-		KnowledgeBaseRepo: kbRepo.NewKnowledgeBaseRepo(knowledgeBaseDao),
-		DocumentRepo:      kbRepo.NewDocumentRepo(documentDao),
+		KnowledgeBaseRepo: knowledgerepo.NewKBRepo(q),
+		DocumentRepo:      knowledgerepo.NewDocumentRepo(q),
 		DocumentChunkRepo: chunkRepo,
 
 		// Chat
-		ConversationRepo: chatRepo.NewConversationRepo(conversationDao),
-		MessageRepo:      chatRepo.NewMessageRepo(messageDao),
+		ConversationRepo: chatrepo.NewConversationRepo(q),
+		MessageRepo:      chatrepo.NewMessageRepo(q),
 
 		// Webhook
-		WebhookRepo:     webhookRepo,
-		WebhookDelivery: webhook.NewDeliveryService(webhookRepo),
+		WebhookRepo:     wbRepo,
+		WebhookDelivery: webhook.NewDeliveryService(wbRepo),
 
 		// LLM & RAG
 		LLMClient:   llmClient,

@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/modules/chat/domain/assembler"
+	chatmod "aipivot/internal/modules/chat"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -43,7 +43,7 @@ func (l *ListMessageLogic) ListMessage(req *types.ListMessageRequest) (resp *typ
 		Timestamp: time.Now().Unix(),
 		Data: types.MessageListData{
 			Total: total,
-			List:  assembler.MessagePoListToShowList(list),
+			List:  chatmod.ToShowMessageList(list),
 		},
 	}, nil
 }

@@ -20,6 +20,10 @@ func RegisterErrorHandler() {
 	httpx.SetErrorHandlerCtx(func(ctx context.Context, err error) (int, any) {
 		var bizErr *BusinessError
 		if errors.As(err, &bizErr) {
+			// 统一在全局错误处理层记录原始错误，logic 层无需重复 log
+			if bizErr.Cause != nil {
+				logx.WithContext(ctx).Errorf("[biz] code=%d msg=%s cause=%v", bizErr.Code, bizErr.Msg, bizErr.Cause)
+			}
 			return http.StatusOK, bizErr
 		}
 

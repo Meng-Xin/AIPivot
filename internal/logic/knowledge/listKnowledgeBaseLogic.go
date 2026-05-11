@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/knowledge/domain/assembler"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -46,7 +46,7 @@ func (l *ListKnowledgeBaseLogic) ListKnowledgeBase(req *types.ListKnowledgeBaseR
 		Timestamp: time.Now().Unix(),
 		Data: types.KnowledgeBaseListData{
 			Total: total,
-			List:  assembler.KnowledgeBasePoListToShowList(list),
+			List:  knowledge.ToShowKBList(list),
 		},
 	}, nil
 }

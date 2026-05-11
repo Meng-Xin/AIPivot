@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/chat/domain/assembler"
+	chatmod "aipivot/internal/modules/chat"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
@@ -66,7 +66,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		}
 		_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 
-		show := assembler.MessagePoToShow(userMsg)
+		show := chatmod.ToShowMessage(userMsg)
 		return &types.SendMessageResponse{
 			Code:      0,
 			Msg:       "OK",
@@ -141,7 +141,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		}
 	}
 
-	show := assembler.MessagePoToShow(aiMsg)
+	show := chatmod.ToShowMessage(aiMsg)
 	return &types.SendMessageResponse{
 		Code:      0,
 		Msg:       "OK",

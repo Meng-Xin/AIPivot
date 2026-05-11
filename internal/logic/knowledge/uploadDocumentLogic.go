@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/knowledge/domain/assembler"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/shared/po"
 	"aipivot/internal/svc"
@@ -92,7 +92,7 @@ func (l *UploadDocumentLogic) UploadDocument(req *types.UploadDocumentRequest, r
 		l.Logger.Errorf("UploadDocument EnqueueTask err: %v", err)
 	}
 
-	show := assembler.DocumentPoToShow(doc)
+	show := knowledge.ToShowDocument(doc)
 	return &types.DocumentDetailResponse{
 		Code:      0,
 		Msg:       "上传成功，正在处理中",

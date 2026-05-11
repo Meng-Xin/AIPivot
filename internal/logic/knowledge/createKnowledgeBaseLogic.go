@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"aipivot/internal/modules/auth"
-	"aipivot/internal/modules/knowledge/domain/assembler"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -34,14 +34,13 @@ func NewCreateKnowledgeBaseLogic(ctx context.Context, svcCtx *svc.ServiceContext
 func (l *CreateKnowledgeBaseLogic) CreateKnowledgeBase(req *types.CreateKnowledgeBaseRequest) (resp *types.KnowledgeBaseDetailResponse, err error) {
 	tenantID := auth.TenantIDFromContext(l.ctx)
 
-	// 1. Request → Domain Model → 校验
-	kbModel := assembler.CreateKBRequestToModel(req)
-	if err = kbModel.CheckName(); err != nil {
+	// 1. 校验
+	if err = knowledge.ValidateName(req.Name); err != nil {
 		return nil, errorx.NewInternalError(err.Error())
 	}
 
-	// 2. Domain Model → PO
-	kbPo := assembler.ModelKBToKnowledgeBasePo(kbModel, tenantID)
+	// 2. Request → PO
+	kbPo := knowledge.NewKnowledgeBasePo(req, tenantID)
 
 	// 3. 持久化
 	if err = l.svcCtx.KnowledgeBaseRepo.Create(l.ctx, kbPo); err != nil {
@@ -50,7 +49,7 @@ func (l *CreateKnowledgeBaseLogic) CreateKnowledgeBase(req *types.CreateKnowledg
 	}
 
 	// 4. PO → Show
-	show := assembler.KnowledgeBasePoToShow(kbPo)
+	show := knowledge.ToShowKB(kbPo)
 	return &types.KnowledgeBaseDetailResponse{
 		Code:      0,
 		Msg:       "创建成功",

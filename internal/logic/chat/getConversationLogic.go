@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/modules/chat/domain/assembler"
+	chatmod "aipivot/internal/modules/chat"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -40,7 +40,7 @@ func (l *GetConversationLogic) GetConversation(req *types.GetConversationRequest
 		return nil, errorx.NewNotFoundError("会话不存在")
 	}
 
-	show := assembler.ConversationPoToShow(conv)
+	show := chatmod.ToShowConversation(conv)
 	return &types.ConversationDetailResponse{
 		Code:      0,
 		Msg:       "OK",

@@ -7,8 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/modules/auth/domain/assembler"
-	"aipivot/internal/modules/auth/repo"
+	"aipivot/internal/modules/auth"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -32,19 +31,16 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 }
 
 func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.CommResponse, err error) {
-	// 1. Request → Domain Model
-	userModel := assembler.RegisterRequestToModelUser(req)
-
-	// 2. 领域校验
-	if err = userModel.CheckEmail(); err != nil {
+	// 1. 校验
+	if err = auth.ValidateEmail(req.Email); err != nil {
 		return nil, errorx.NewInternalError(err.Error())
 	}
-	if err = userModel.CheckPassword(); err != nil {
+	if err = auth.ValidatePassword(req.Password); err != nil {
 		return nil, errorx.NewInternalError(err.Error())
 	}
 
 	// 3. 唯一性检查（MVP: 使用 default 租户）
-	existing, err := l.getUserRepo().GetByEmail(l.ctx, l.getDefaultTenantID(), userModel.Email)
+	existing, err := l.svcCtx.UserRepo.GetByEmail(l.ctx, l.getDefaultTenantID(), req.Email)
 	if err != nil {
 		l.Logger.Errorf("Register GetByEmail err: %v", err)
 		return nil, errorx.NewInternalError("注册失败")
@@ -53,16 +49,16 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.CommRe
 		return nil, errorx.NewBusinessError(errorx.CodeFailed, "该邮箱已注册")
 	}
 
-	// 4. 加密密码 + 转换为 PO
-	encryptedPwd, err := userModel.EncryptPassword()
+	// 4. 加密密码 + 构造 PO
+	encryptedPwd, err := auth.EncryptPassword(req.Password)
 	if err != nil {
 		l.Logger.Errorf("Register EncryptPassword err: %v", err)
 		return nil, errorx.NewInternalError("注册失败")
 	}
-	userPo := assembler.ModelUserToUserPo(userModel, l.getDefaultTenantID(), encryptedPwd)
+	userPo := auth.NewUserPo(req.NickName, req.Email, encryptedPwd, l.getDefaultTenantID())
 
 	// 5. 持久化
-	if err = l.getUserRepo().Create(l.ctx, userPo); err != nil {
+	if err = l.svcCtx.UserRepo.Create(l.ctx, userPo); err != nil {
 		l.Logger.Errorf("Register Create err: %v", err)
 		return nil, errorx.NewInternalError("注册失败")
 	}
@@ -72,10 +68,6 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.CommRe
 		Msg:       "注册成功",
 		Timestamp: time.Now().Unix(),
 	}, nil
-}
-
-func (l *RegisterLogic) getUserRepo() repo.UserRepository {
-	return l.svcCtx.UserRepo
 }
 
 func (l *RegisterLogic) getDefaultTenantID() int64 {

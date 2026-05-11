@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"aipivot/internal/middleware"
+	"aipivot/internal/modules/auth"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/shared/sse"
 	"aipivot/internal/svc"
@@ -33,7 +33,7 @@ func NewChatCompletionStreamLogic(ctx context.Context, svcCtx *svc.ServiceContex
 
 // ChatCompletionStream SSE 流式 Chat Completion：直接操作 ResponseWriter 推送增量 token。
 func (l *ChatCompletionStreamLogic) ChatCompletionStream(w http.ResponseWriter, req *types.ChatCompletionRequest) {
-	tenantID := middleware.TenantIDFromAPIKeyContext(l.ctx)
+	tenantID := auth.TenantIDFromAPIKeyContext(l.ctx)
 	if tenantID == 0 {
 		http.Error(w, `{"code":401,"msg":"invalid API key context"}`, http.StatusUnauthorized)
 		return

@@ -9,6 +9,7 @@ import (
 
 	"aipivot/internal/config"
 	"aipivot/internal/handler"
+	"aipivot/internal/middleware"
 	"aipivot/internal/observability"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
@@ -64,6 +65,7 @@ func main() {
 	}
 
 	errorx.RegisterErrorHandler()
+	server.Use(middleware.CorsMiddleware)
 	server.Use(observability.Middleware(svcCtx.Metrics, c.Name))
 	handler.RegisterHandlers(server, svcCtx)
 

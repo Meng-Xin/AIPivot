@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/modules/knowledge/domain/assembler"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -40,7 +40,7 @@ func (l *GetKnowledgeBaseLogic) GetKnowledgeBase(req *types.GetKnowledgeBaseRequ
 		return nil, errorx.NewNotFoundError("知识库不存在")
 	}
 
-	show := assembler.KnowledgeBasePoToShow(kb)
+	show := knowledge.ToShowKB(kb)
 	return &types.KnowledgeBaseDetailResponse{
 		Code:      0,
 		Msg:       "OK",

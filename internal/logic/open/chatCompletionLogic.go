@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"aipivot/internal/middleware"
+	"aipivot/internal/modules/auth"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -33,7 +33,7 @@ func NewChatCompletionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ch
 }
 
 func (l *ChatCompletionLogic) ChatCompletion(req *types.ChatCompletionRequest) (resp *types.ChatCompletionResponse, err error) {
-	tenantID := middleware.TenantIDFromAPIKeyContext(l.ctx)
+	tenantID := auth.TenantIDFromAPIKeyContext(l.ctx)
 	if tenantID == 0 {
 		return nil, errorx.NewUnauthError("invalid API key context")
 	}

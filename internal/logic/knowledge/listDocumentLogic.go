@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"aipivot/internal/modules/knowledge/domain/assembler"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -43,7 +43,7 @@ func (l *ListDocumentLogic) ListDocument(req *types.ListDocumentRequest) (resp *
 		Timestamp: time.Now().Unix(),
 		Data: types.DocumentListData{
 			Total: total,
-			List:  assembler.DocumentPoListToShowList(list),
+			List:  knowledge.ToShowDocumentList(list),
 		},
 	}, nil
 }

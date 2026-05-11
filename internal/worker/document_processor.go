@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"aipivot/internal/modules/knowledge/repo"
-	"aipivot/internal/modules/knowledge/repo/dao"
+	"aipivot/internal/modules/knowledge"
 	"aipivot/pkg/chunker"
 	"aipivot/pkg/llm"
 
@@ -18,16 +17,16 @@ import (
 // DocumentProcessor 文档异步处理器：读取文档内容 → 切块 → Embedding → 存储到 pgvector。
 type DocumentProcessor struct {
 	llmClient *llm.Client
-	docRepo   repo.DocumentRepository
-	chunkRepo repo.DocumentChunkRepository
-	kbRepo    repo.KnowledgeBaseRepository
+	docRepo   knowledge.DocumentRepository
+	chunkRepo knowledge.DocChunkRepository
+	kbRepo    knowledge.KBRepository
 }
 
 func NewDocumentProcessor(
 	llmClient *llm.Client,
-	docRepo repo.DocumentRepository,
-	chunkRepo repo.DocumentChunkRepository,
-	kbRepo repo.KnowledgeBaseRepository,
+	docRepo knowledge.DocumentRepository,
+	chunkRepo knowledge.DocChunkRepository,
+	kbRepo knowledge.KBRepository,
 ) *DocumentProcessor {
 	return &DocumentProcessor{
 		llmClient: llmClient,
@@ -74,7 +73,7 @@ func (p *DocumentProcessor) ProcessTask(ctx context.Context, t *asynq.Task) erro
 
 	// 4. 批量 Embedding（每批最多 20 条防止超时）
 	const embeddingBatch = 20
-	chunkData := make([]dao.ChunkWithEmbedding, 0, len(chunks))
+	chunkData := make([]knowledge.ChunkWithEmbedding, 0, len(chunks))
 
 	for i := 0; i < len(chunks); i += embeddingBatch {
 		end := i + embeddingBatch
@@ -94,7 +93,7 @@ func (p *DocumentProcessor) ProcessTask(ctx context.Context, t *asynq.Task) erro
 		}
 
 		for j, c := range chunks[i:end] {
-			chunkData = append(chunkData, dao.ChunkWithEmbedding{
+			chunkData = append(chunkData, knowledge.ChunkWithEmbedding{
 				DocumentID:      payload.DocumentID,
 				KnowledgeBaseID: payload.KnowledgeBaseID,
 				TenantID:        payload.TenantID,
