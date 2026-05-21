@@ -100,6 +100,11 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		kbID = *conv.KnowledgeBaseID
 	}
 
+	// 日 Token 配额检查（limit=0 时跳过；tenantID 已在函数顶部取得）
+	if err := l.svcCtx.TokenLimiter.Check(l.ctx, tenantID); err != nil {
+		return nil, err
+	}
+
 	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history, conv.Model)
 	if err != nil {
 		l.Logger.Errorf("SendMessage RAG.Answer err: %v", err)
@@ -129,6 +134,9 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 	// 6. 更新会话消息计数（+2: 用户消息 + AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+
+	// 记录当日已用 token（fire-and-forget）
+	l.svcCtx.TokenLimiter.Incr(l.ctx, tenantID, result.TokenCount)
 
 	// 7. Agent 触发的自动转接：检查工具调用中是否包含 escalate_to_human
 	for _, tu := range result.ToolUses {

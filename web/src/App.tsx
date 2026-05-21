@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { MessageSquare, BookOpen, Bot } from "lucide-react";
+import { MessageSquare, BookOpen, Bot, BarChart2 } from "lucide-react";
 import { useAuthStore } from "./store/auth";
 import LoginPage from "./pages/LoginPage";
 import ChatPage from "./pages/ChatPage";
 import KnowledgePage from "./pages/KnowledgePage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
-type NavTab = "chat" | "knowledge";
+type NavTab = "chat" | "knowledge" | "analytics";
 
 export default function App() {
   const token = useAuthStore((s) => s.token);
@@ -32,12 +33,19 @@ export default function App() {
           active={tab === "knowledge"}
           onClick={() => setTab("knowledge")}
         />
+        <NavButton
+          icon={<BarChart2 className="h-5 w-5" />}
+          label="分析"
+          active={tab === "analytics"}
+          onClick={() => setTab("analytics")}
+        />
       </nav>
 
       {/* 页面内容 */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         {tab === "chat" && <ChatPage />}
         {tab === "knowledge" && <KnowledgePage />}
+        {tab === "analytics" && <AnalyticsPage />}
       </div>
     </div>
   );

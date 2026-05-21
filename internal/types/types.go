@@ -3,6 +3,61 @@
 
 package types
 
+type AnalyticsDailyRequest struct {
+	Days int `form:"days,default=7,range=[1:90]"` // 统计最近 N 天（1-90）
+}
+
+type AnalyticsDailyResponse struct {
+	Code      int32            `json:"code"`
+	Msg       string           `json:"msg"`
+	Timestamp int64            `json:"timestamp"`
+	Data      []DailyStatPoint `json:"data"`
+}
+
+type AnalyticsOverviewData struct {
+	TotalConversations  int64            `json:"totalConversations"`
+	ActiveConversations int64            `json:"activeConversations"`
+	TotalMessages       int64            `json:"totalMessages"`
+	TotalTokens         int64            `json:"totalTokens"`
+	EstimatedCost       float64          `json:"estimatedCost"`
+	AIResolveRate       float64          `json:"aiResolveRate"`
+	EscalationRate      float64          `json:"escalationRate"`
+	ByStatus            []ConvStatusStat `json:"byStatus"`
+	ByChannel           []ChannelStat    `json:"byChannel"`
+	ModelUsage          []ModelUsageStat `json:"modelUsage"`
+}
+
+type AnalyticsOverviewResponse struct {
+	Code      int32                 `json:"code"`
+	Msg       string                `json:"msg"`
+	Timestamp int64                 `json:"timestamp"`
+	Data      AnalyticsOverviewData `json:"data"`
+}
+
+type ChannelStat struct {
+	Channel string `json:"channel"` // 接入渠道: web / api / webhook
+	Count   int64  `json:"count"`
+}
+
+type ConvStatusStat struct {
+	Status string `json:"status"` // 会话状态: active / waiting_human / closed
+	Count  int64  `json:"count"`
+}
+
+type DailyStatPoint struct {
+	Date              string `json:"date"`              // 日期 YYYY-MM-DD
+	ConversationCount int64  `json:"conversationCount"` // 新建会话数
+	MessageCount      int64  `json:"messageCount"`      // AI 回复消息数
+	TokenCount        int64  `json:"tokenCount"`        // token 消耗数
+}
+
+type ModelUsageStat struct {
+	Model         string  `json:"model"`         // 模型标识
+	MessageCount  int64   `json:"messageCount"`  // AI 回复消息数
+	TokenCount    int64   `json:"tokenCount"`    // 总 token 数
+	EstimatedCost float64 `json:"estimatedCost"` // 估算费用（美元）
+}
+
 type ApiKeyListResponse struct {
 	Code      int32        `json:"code"`
 	Msg       string       `json:"msg"`

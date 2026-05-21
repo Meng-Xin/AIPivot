@@ -21,6 +21,7 @@ import (
 	knowledgerepo "aipivot/internal/repository/knowledge"
 	webhookrepo "aipivot/internal/repository/webhook"
 	"aipivot/internal/shared/query"
+	"aipivot/internal/shared/ratelimit"
 	"aipivot/pkg/llm"
 
 	"github.com/hibiken/asynq"
@@ -62,9 +63,10 @@ type ServiceContext struct {
 	WebhookDelivery *webhook.DeliveryService
 
 	// LLM & RAG
-	LLMClient   *llm.Client
-	RAGService  *rag.Service
-	AsynqClient *asynq.Client
+	LLMClient    *llm.Client
+	RAGService   *rag.Service
+	AsynqClient  *asynq.Client
+	TokenLimiter *ratelimit.TokenLimiter // 每租户日 Token 配额限流
 }
 
 func NewServiceContext(c config.Config) (*ServiceContext, error) {
@@ -121,6 +123,9 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		Temperature:    c.LLM.Temperature,
 	})
 
+	// TokenLimiter（Redis 令牌桶，限制每租户日 token 用量）
+	tokenLimiter := ratelimit.NewTokenLimiter(redisClient, c.RateLimit.DailyTokenLimit)
+
 	// Asynq Client（用于提交异步任务）
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:     c.Redis.Addr,
@@ -155,9 +160,10 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		WebhookDelivery: webhook.NewDeliveryService(wbRepo),
 
 		// LLM & RAG
-		LLMClient:   llmClient,
-		RAGService:  ragService,
-		AsynqClient: asynqClient,
+		LLMClient:    llmClient,
+		RAGService:   ragService,
+		AsynqClient:  asynqClient,
+		TokenLimiter: tokenLimiter,
 
 		HealthChecks: []infra.DependencyCheck{
 			infra.CheckPostgres(db),

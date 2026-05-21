@@ -628,4 +628,71 @@ active ────────────────────────�
 2. P2: 对话分析仪表盘
 3. P2: LLM 成本追踪与限流
 
-*文档版本：v1.8 | 更新日期：2026-05-10*
+---
+
+## Phase 2 完成记录（v1.9）
+
+### 对话分析仪表盘 + LLM 成本追踪 + 日限流
+
+**完成日期：** 2026-05-22
+
+#### 后端实现
+
+**Analytics API（`GET /api/v1/analytics/overview` + `GET /api/v1/analytics/daily`）**
+
+- **`api/analytics.api`** — API 定义，含 `AnalyticsOverview` / `AnalyticsDaily` 两个端点（JWT 鉴权）
+- **`internal/handler/analytics/`** — `overviewHandler.go` / `dailyHandler.go`（手动创建，模仿 goctl 风格）
+- **`internal/logic/analytics/`** — 纯 SQL 聚合逻辑：
+  - `overviewLogic.go`：按状态/渠道/模型聚合会话数、消息数、token 数，结合 `ModelPricing` 配置估算费用，计算 AI 解决率与转人工率
+  - `dailyLogic.go`：日粒度趋势（最近 N 天，最大 90 天），补零确保前端图表无断点
+- **路由** — 追加到 `internal/handler/routes.go` 的 JWT 鉴权组
+
+**LLM 成本追踪（`ModelPricingConf`）**
+
+- **`internal/config/config.go`** — 新增 `ModelPricingConf`（`Model` + `PerK` 美元/千 tokens）+ `RateLimitConf`（`DailyTokenLimit`）
+- **`etc/aipivot-api.yaml`** — 配置 gpt-3.5-turbo/gpt-4o/gpt-4o-mini/deepseek-chat 的单价及每日 token 上限
+- 费用估算在 `overviewLogic.go` 内即时计算，**不落库**（保持消息表简洁）
+
+**Redis 日 Token 限流（`TokenLimiter`）**
+
+- **`internal/shared/ratelimit/token_limiter.go`** — Redis INCR 计数器，key `rl:tokens:{tenantID}:{YYYY-MM-DD}`，TTL 48h，`limit=0` 时 fail-open 放行
+- **注入点** — `internal/svc/servicecontext.go` 新增 `TokenLimiter` 字段
+- **拦截点** — `sendMessageLogic.go` + `sendMessageStreamLogic.go` 调用 RAG 前 `Check`，成功后 `Incr`
+
+#### 前端实现（`web/src/`）
+
+- **`lib/api.ts`** — 新增 analytics 类型定义 + `getAnalyticsOverview` / `getAnalyticsDaily`
+- **`pages/AnalyticsPage.tsx`** — 全功能分析仪表盘（纯 React + SVG + TailwindCSS，无额外依赖）：
+  - 6 个 KPI 卡片（会话数/消息数/Token/费用/AI解决率/转人工率）
+  - 双面板 SVG Area Chart（会话&消息趋势 + Token 趋势，支持 7/14/30 天切换）
+  - 模型用量表格（带 token 内联进度条）
+  - 会话状态 & 渠道来源分布横向进度条
+- **`App.tsx`** — 侧边栏新增"分析"导航入口（`BarChart2` 图标）
+
+#### 新增/修改文件清单
+
+| 路径 | 用途 |
+|------|------|
+| `api/analytics.api` | **新文件** — Analytics API 定义 |
+| `internal/types/types.go` | 新增 8 个 analytics 类型 |
+| `internal/config/config.go` | 新增 `ModelPricingConf` + `RateLimitConf` |
+| `etc/aipivot-api.yaml` | 新增 ModelPricing + RateLimit 配置段 |
+| `internal/shared/ratelimit/token_limiter.go` | **新文件** — Redis 日 Token 配额限流器 |
+| `internal/handler/analytics/overviewHandler.go` | **新文件** — 概览 Handler |
+| `internal/handler/analytics/dailyHandler.go` | **新文件** — 日粒度 Handler |
+| `internal/logic/analytics/overviewLogic.go` | **新文件** — 概览聚合逻辑 |
+| `internal/logic/analytics/dailyLogic.go` | **新文件** — 日趋势聚合逻辑 |
+| `internal/handler/routes.go` | 注册 `/analytics/overview` + `/analytics/daily` |
+| `internal/svc/servicecontext.go` | 注入 `TokenLimiter` |
+| `internal/logic/chat/sendMessageLogic.go` | 增加 Token 配额检查 + Incr |
+| `internal/logic/chat/sendMessageStreamLogic.go` | 增加 Token 配额检查 + Incr |
+| `web/src/lib/api.ts` | 新增 analytics 类型 + API 函数 |
+| `web/src/pages/AnalyticsPage.tsx` | **新文件** — 分析仪表盘页面 |
+| `web/src/App.tsx` | 侧边栏新增"分析"导航 |
+
+**Phase 2 全部完成。** 下一阶段可考虑：
+- P3: 多租户管理后台（租户CRUD + 用户管理）
+- P3: SLA 报表导出（CSV/PDF）
+- P3: 前端 Webhook 配置管理页面
+
+*文档版本：v1.9 | 更新日期：2026-05-22*

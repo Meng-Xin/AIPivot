@@ -6,6 +6,7 @@ package handler
 import (
 	"net/http"
 
+	analytics "aipivot/internal/handler/analytics"
 	apikey "aipivot/internal/handler/apikey"
 	auth "aipivot/internal/handler/auth"
 	chat "aipivot/internal/handler/chat"
@@ -217,6 +218,27 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodGet,
 					Path:    "/models",
 					Handler: models.ListModelsHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 获取对话分析概览
+					Method:  http.MethodGet,
+					Path:    "/analytics/overview",
+					Handler: analytics.AnalyticsOverviewHandler(serverCtx),
+				},
+				{
+					// 获取日粒度对话统计趋势
+					Method:  http.MethodGet,
+					Path:    "/analytics/daily",
+					Handler: analytics.AnalyticsDailyHandler(serverCtx),
 				},
 			}...,
 		),

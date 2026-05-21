@@ -1,0 +1,90 @@
+syntax = "v1"
+
+info (
+	title:   "数据分析接口"
+	desc:    "对话分析仪表盘：概览统计 + 日粒度趋势"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// ConvStatusStat 按状态聚合的会话统计
+	ConvStatusStat {
+		Status string `json:"status"` // 会话状态: active / waiting_human / closed
+		Count  int64  `json:"count"`  // 数量
+	}
+
+	// ChannelStat 按渠道聚合的会话统计
+	ChannelStat {
+		Channel string `json:"channel"` // 接入渠道: web / api / webhook
+		Count   int64  `json:"count"`   // 数量
+	}
+
+	// ModelUsageStat 按模型聚合的 Token & 费用统计
+	ModelUsageStat {
+		Model         string  `json:"model"`         // 模型标识
+		MessageCount  int64   `json:"messageCount"`  // AI 回复消息数
+		TokenCount    int64   `json:"tokenCount"`    // 总 token 数
+		EstimatedCost float64 `json:"estimatedCost"` // 估算费用（美元）
+	}
+
+	// AnalyticsOverviewData 分析概览数据
+	AnalyticsOverviewData {
+		TotalConversations  int64            `json:"totalConversations"`  // 会话总数
+		ActiveConversations int64            `json:"activeConversations"` // 当前活跃会话数
+		TotalMessages       int64            `json:"totalMessages"`       // 消息总数
+		TotalTokens         int64            `json:"totalTokens"`         // 总 token 消耗
+		EstimatedCost       float64          `json:"estimatedCost"`       // 估算总费用（美元）
+		AIResolveRate       float64          `json:"aiResolveRate"`       // AI 解决率 %（closed/total）
+		EscalationRate      float64          `json:"escalationRate"`      // 转人工率 %（waiting_human/total）
+		ByStatus            []ConvStatusStat `json:"byStatus"`            // 各状态会话分布
+		ByChannel           []ChannelStat    `json:"byChannel"`           // 各渠道会话分布
+		ModelUsage          []ModelUsageStat `json:"modelUsage"`          // 各模型使用详情
+	}
+
+	// AnalyticsOverviewResponse 分析概览响应
+	AnalyticsOverviewResponse {
+		Code      int32                `json:"code"`
+		Msg       string               `json:"msg"`
+		Timestamp int64                `json:"timestamp"`
+		Data      AnalyticsOverviewData `json:"data"`
+	}
+
+	// AnalyticsDailyRequest 日粒度统计请求
+	AnalyticsDailyRequest {
+		Days int `form:"days,default=7,range=[1:90]"` // 统计最近 N 天（1-90）
+	}
+
+	// DailyStatPoint 单日统计数据点
+	DailyStatPoint {
+		Date              string `json:"date"`              // 日期 YYYY-MM-DD
+		ConversationCount int64  `json:"conversationCount"` // 新建会话数
+		MessageCount      int64  `json:"messageCount"`      // AI 回复消息数
+		TokenCount        int64  `json:"tokenCount"`        // token 消耗数
+	}
+
+	// AnalyticsDailyResponse 日粒度统计响应
+	AnalyticsDailyResponse {
+		Code      int32            `json:"code"`
+		Msg       string           `json:"msg"`
+		Timestamp int64            `json:"timestamp"`
+		Data      []DailyStatPoint `json:"data"`
+	}
+)
+
+// 数据分析（需要 JWT 鉴权）
+@server (
+	group:      analytics
+	prefix:     /api/v1
+	tags:       "数据分析"
+	middleware: AuthMiddleware
+)
+service aipivot-api {
+	@doc "获取对话分析概览（会话数/消息数/Token/费用/解决率/渠道分布）"
+	@handler AnalyticsOverview
+	get /analytics/overview returns (AnalyticsOverviewResponse)
+
+	@doc "获取日粒度对话统计趋势（最近 N 天）"
+	@handler AnalyticsDaily
+	get /analytics/daily (AnalyticsDailyRequest) returns (AnalyticsDailyResponse)
+}

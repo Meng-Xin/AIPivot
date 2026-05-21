@@ -441,3 +441,58 @@ export async function deleteDocument(
     token
   );
 }
+
+// ==================== Analytics API ====================
+
+export interface ConvStatusStat {
+  status: string;
+  count: number;
+}
+
+export interface ChannelStat {
+  channel: string;
+  count: number;
+}
+
+export interface ModelUsageStat {
+  model: string;
+  messageCount: number;
+  tokenCount: number;
+  estimatedCost: number;
+}
+
+export interface AnalyticsOverviewData {
+  totalConversations: number;
+  activeConversations: number;
+  totalMessages: number;
+  totalTokens: number;
+  estimatedCost: number;
+  aiResolveRate: number;
+  escalationRate: number;
+  byStatus: ConvStatusStat[];
+  byChannel: ChannelStat[];
+  modelUsage: ModelUsageStat[];
+}
+
+export interface DailyStatPoint {
+  date: string;
+  conversationCount: number;
+  messageCount: number;
+  tokenCount: number;
+}
+
+export async function getAnalyticsOverview(token: string) {
+  return request<AnalyticsOverviewData>(
+    "GET",
+    "/api/v1/analytics/overview",
+    token
+  );
+}
+
+export async function getAnalyticsDaily(token: string, days = 7) {
+  return request<DailyStatPoint[]>(
+    "GET",
+    `/api/v1/analytics/daily?days=${days}`,
+    token
+  );
+}

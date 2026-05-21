@@ -86,3 +86,18 @@ Worker:
 Agent:
   Enabled: true
   MaxRounds: 5
+
+# 模型计费配置（混合口径，美元/1K tokens）
+ModelPricing:
+  - Model: "gpt-3.5-turbo"
+    PerK: 0.002
+  - Model: "gpt-4o"
+    PerK: 0.005
+  - Model: "gpt-4o-mini"
+    PerK: 0.00015
+  - Model: "deepseek-chat"
+    PerK: 0.001
+
+# 每租户 Token 日配额限流（0 = 不限制）
+RateLimit:
+  DailyTokenLimit: 0

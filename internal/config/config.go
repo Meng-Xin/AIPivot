@@ -5,15 +5,17 @@ import "github.com/zeromicro/go-zero/rest"
 type Config struct {
 	rest.RestConf
 
-	Postgres  PostgresConf
-	Redis     RedisConf
-	Telemetry TelemetryConf
-	Metrics   MetricsConf
-	Auth      AuthConf
-	Migration MigrationConf
-	LLM       LLMConf
-	Worker    WorkerConf
-	Agent     AgentConf
+	Postgres     PostgresConf
+	Redis        RedisConf
+	Telemetry    TelemetryConf
+	Metrics      MetricsConf
+	Auth         AuthConf
+	Migration    MigrationConf
+	LLM          LLMConf
+	Worker       WorkerConf
+	Agent        AgentConf
+	ModelPricing []ModelPricingConf
+	RateLimit    RateLimitConf
 }
 
 type AuthConf struct {
@@ -84,6 +86,17 @@ type ModelOption struct {
 type WorkerConf struct {
 	Enabled     bool `json:",default=true"`
 	Concurrency int  `json:",default=5"`
+}
+
+// ModelPricingConf 模型计费配置，用于分析报表中的费用估算
+type ModelPricingConf struct {
+	Model string  // 模型标识，需与 LLM.ChatModels[].ID 保持一致
+	PerK  float64 // 每千 tokens 估算费用（美元），混合口径（输入+输出均摊）
+}
+
+// RateLimitConf 每租户 Token 日配额限流配置
+type RateLimitConf struct {
+	DailyTokenLimit int64 `json:",default=0"` // 每日 Token 上限（0 = 不限制）
 }
 
 // AgentConf Function Calling Agent 配置
