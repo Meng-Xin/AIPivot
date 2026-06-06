@@ -1,0 +1,106 @@
+syntax = "v1"
+
+info (
+	title:   "租户自定义工具接口"
+	desc:    "管理员在后台注册自定义 HTTP 回调工具（Skill），由 Agent 在对话中调用"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// CreateSkillRequest 创建自定义工具请求
+	// Parameters / Headers 均为 JSON string，Logic 层负责 marshal/unmarshal
+	CreateSkillRequest {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Parameters  string `json:"parameters"`           // JSON Schema 字符串
+		Endpoint    string `json:"endpoint"`
+		Method      string `json:"method,optional"`      // GET / POST，默认 POST
+		Headers     string `json:"headers,optional"`     // JSON 对象字符串，如 {"Authorization":"Bearer xxx"}
+		TimeoutMs   int    `json:"timeoutMs,optional"`   // 0 时使用默认值 5000
+		Enabled     bool   `json:"enabled,optional"`
+	}
+
+	// UpdateSkillRequest 更新自定义工具请求
+	UpdateSkillRequest {
+		ID          int64  `path:"id"`
+		Name        string `json:"name,optional"`
+		Description string `json:"description,optional"`
+		Parameters  string `json:"parameters,optional"`
+		Endpoint    string `json:"endpoint,optional"`
+		Method      string `json:"method,optional"`
+		Headers     string `json:"headers,optional"`
+		TimeoutMs   int    `json:"timeoutMs,optional"`
+		Enabled     bool   `json:"enabled,optional"`
+	}
+
+	// GetSkillRequest 获取工具详情请求
+	GetSkillRequest {
+		ID int64 `path:"id"`
+	}
+
+	// DeleteSkillRequest 删除工具请求
+	DeleteSkillRequest {
+		ID int64 `path:"id"`
+	}
+
+	// ShowSkill 工具展示对象
+	ShowSkill {
+		ID          int64  `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Parameters  string `json:"parameters"` // JSON Schema 字符串
+		Endpoint    string `json:"endpoint"`
+		Method      string `json:"method"`
+		Headers     string `json:"headers"` // JSON 对象字符串
+		TimeoutMs   int    `json:"timeoutMs"`
+		Enabled     bool   `json:"enabled"`
+		CreatedAt   int64  `json:"createdAt"`
+		UpdatedAt   int64  `json:"updatedAt"`
+	}
+
+	// SkillResponse 单个工具响应
+	SkillResponse {
+		Code      int32     `json:"code"`
+		Msg       string    `json:"msg"`
+		Timestamp int64     `json:"timestamp"`
+		Data      ShowSkill `json:"data"`
+	}
+
+	// SkillListResponse 工具列表响应
+	SkillListResponse {
+		Code      int32       `json:"code"`
+		Msg       string      `json:"msg"`
+		Timestamp int64       `json:"timestamp"`
+		Data      []ShowSkill `json:"data"`
+	}
+)
+
+// 自定义工具管理（需要 Admin 鉴权）
+@server (
+	group:      skills
+	prefix:     /api/v1
+	tags:       "自定义工具"
+	middleware: AdminMiddleware
+)
+service aipivot-api {
+	@doc "创建自定义工具"
+	@handler CreateSkill
+	post /skills (CreateSkillRequest) returns (SkillResponse)
+
+	@doc "获取工具列表"
+	@handler ListSkills
+	get /skills returns (SkillListResponse)
+
+	@doc "获取工具详情"
+	@handler GetSkill
+	get /skills/:id (GetSkillRequest) returns (SkillResponse)
+
+	@doc "更新工具"
+	@handler UpdateSkill
+	put /skills/:id (UpdateSkillRequest) returns (SkillResponse)
+
+	@doc "删除工具"
+	@handler DeleteSkill
+	delete /skills/:id (DeleteSkillRequest) returns (CommResponse)
+}

@@ -6,6 +6,7 @@ package handler
 import (
 	"net/http"
 
+	admin "aipivot/internal/handler/admin"
 	analytics "aipivot/internal/handler/analytics"
 	apikey "aipivot/internal/handler/apikey"
 	auth "aipivot/internal/handler/auth"
@@ -14,6 +15,7 @@ import (
 	knowledge "aipivot/internal/handler/knowledge"
 	models "aipivot/internal/handler/models"
 	open "aipivot/internal/handler/open"
+	skills "aipivot/internal/handler/skills"
 	webhook "aipivot/internal/handler/webhook"
 	"aipivot/internal/svc"
 
@@ -21,6 +23,78 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AdminMiddleware},
+			[]rest.Route{
+				{
+					// 获取当前租户信息
+					Method:  http.MethodGet,
+					Path:    "/tenant",
+					Handler: admin.GetTenantHandler(serverCtx),
+				},
+				{
+					// 更新当前租户设置
+					Method:  http.MethodPut,
+					Path:    "/tenant",
+					Handler: admin.UpdateTenantHandler(serverCtx),
+				},
+				{
+					// 获取租户用户列表
+					Method:  http.MethodGet,
+					Path:    "/users",
+					Handler: admin.ListUsersHandler(serverCtx),
+				},
+				{
+					// 创建租户用户
+					Method:  http.MethodPost,
+					Path:    "/users",
+					Handler: admin.CreateUserHandler(serverCtx),
+				},
+				{
+					// 更新租户用户
+					Method:  http.MethodPut,
+					Path:    "/users/:id",
+					Handler: admin.UpdateUserHandler(serverCtx),
+				},
+				{
+					// 删除租户用户
+					Method:  http.MethodDelete,
+					Path:    "/users/:id",
+					Handler: admin.DeleteUserHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 获取日粒度对话统计趋势（最近 N 天）
+					Method:  http.MethodGet,
+					Path:    "/analytics/daily",
+					Handler: analytics.AnalyticsDailyHandler(serverCtx),
+				},
+				{
+					// 导出 SLA 报表 CSV
+					Method:  http.MethodGet,
+					Path:    "/analytics/export",
+					Handler: analytics.ExportReportHandler(serverCtx),
+				},
+				{
+					// 获取对话分析概览（会话数/消息数/Token/费用/解决率/渠道分布）
+					Method:  http.MethodGet,
+					Path:    "/analytics/overview",
+					Handler: analytics.AnalyticsOverviewHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
 	server.AddRoutes(
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.AuthMiddleware},
@@ -87,12 +161,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/conversations/:convId/messages",
 					Handler: chat.SendMessageHandler(serverCtx),
-				},
-				{
-					// 发送消息（SSE 流式模式）— 手写路由，goctl 不支持 SSE 端点生成
-					Method:  http.MethodPost,
-					Path:    "/conversations/:convId/messages/stream",
-					Handler: chat.SendMessageStreamHandler(serverCtx),
 				},
 				{
 					// 获取消息历史
@@ -225,52 +293,66 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
+		[]rest.Route{
+			{
+				// Chat Completion（同步）— OpenAI 兼容格式，通过 API Key 认证
+				Method:  http.MethodPost,
+				Path:    "/chat/completions",
+				Handler: open.ChatCompletionHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/v1/open"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复
+				Method:  http.MethodPost,
+				Path:    "/webhook/:webhookId/inbound",
+				Handler: open.WebhookInboundHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/v1/open"),
+	)
+
+	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Middleware{serverCtx.AdminMiddleware},
 			[]rest.Route{
 				{
-					// 获取对话分析概览
-					Method:  http.MethodGet,
-					Path:    "/analytics/overview",
-					Handler: analytics.AnalyticsOverviewHandler(serverCtx),
+					// 创建自定义工具
+					Method:  http.MethodPost,
+					Path:    "/skills",
+					Handler: skills.CreateSkillHandler(serverCtx),
 				},
 				{
-					// 获取日粒度对话统计趋势
+					// 获取工具列表
 					Method:  http.MethodGet,
-					Path:    "/analytics/daily",
-					Handler: analytics.AnalyticsDailyHandler(serverCtx),
+					Path:    "/skills",
+					Handler: skills.ListSkillsHandler(serverCtx),
+				},
+				{
+					// 获取工具详情
+					Method:  http.MethodGet,
+					Path:    "/skills/:id",
+					Handler: skills.GetSkillHandler(serverCtx),
+				},
+				{
+					// 更新工具
+					Method:  http.MethodPut,
+					Path:    "/skills/:id",
+					Handler: skills.UpdateSkillHandler(serverCtx),
+				},
+				{
+					// 删除工具
+					Method:  http.MethodDelete,
+					Path:    "/skills/:id",
+					Handler: skills.DeleteSkillHandler(serverCtx),
 				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
-	)
-
-	// Open API 路由组 — 使用 API Key 中间件认证（非 JWT）
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.ApiKeyMiddleware},
-			[]rest.Route{
-				{
-					// Chat Completion（同步）— OpenAI 兼容格式
-					Method:  http.MethodPost,
-					Path:    "/chat/completions",
-					Handler: open.ChatCompletionHandler(serverCtx),
-				},
-				{
-					// Chat Completion（SSE 流式）— 手写路由
-					Method:  http.MethodPost,
-					Path:    "/chat/completions/stream",
-					Handler: open.ChatCompletionStreamHandler(serverCtx),
-				},
-				{
-					// Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复
-					Method:  http.MethodPost,
-					Path:    "/webhook/:webhookId/inbound",
-					Handler: open.WebhookInboundHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1/open"),
 	)
 
 	server.AddRoutes(

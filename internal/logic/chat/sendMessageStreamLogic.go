@@ -124,7 +124,10 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		return
 	}
 
-	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, kbID, req.Content, history, conv.Model)
+	// 加载租户启用的自定义 Skill 作为 Agent 请求级工具
+	extraTools := loadTenantSkills(l.ctx, l.svcCtx, tenantID)
+
+	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, kbID, req.Content, history, conv.Model, extraTools)
 	if err != nil {
 		l.Logger.Errorf("SendMessageStream RAG.AnswerStream err: %v", err)
 		sseWriter.WriteError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")

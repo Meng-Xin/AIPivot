@@ -3,6 +3,11 @@
 
 package types
 
+type AdminUsersData struct {
+	Total int64           `json:"total"`
+	List  []ShowAdminUser `json:"list"`
+}
+
 type AnalyticsDailyRequest struct {
 	Days int `form:"days,default=7,range=[1:90]"` // 统计最近 N 天（1-90）
 }
@@ -14,17 +19,21 @@ type AnalyticsDailyResponse struct {
 	Data      []DailyStatPoint `json:"data"`
 }
 
+type AnalyticsExportRequest struct {
+	Days int `form:"days,default=30,range=[1:90]"` // 统计最近 N 天（1-90）
+}
+
 type AnalyticsOverviewData struct {
-	TotalConversations  int64            `json:"totalConversations"`
-	ActiveConversations int64            `json:"activeConversations"`
-	TotalMessages       int64            `json:"totalMessages"`
-	TotalTokens         int64            `json:"totalTokens"`
-	EstimatedCost       float64          `json:"estimatedCost"`
-	AIResolveRate       float64          `json:"aiResolveRate"`
-	EscalationRate      float64          `json:"escalationRate"`
-	ByStatus            []ConvStatusStat `json:"byStatus"`
-	ByChannel           []ChannelStat    `json:"byChannel"`
-	ModelUsage          []ModelUsageStat `json:"modelUsage"`
+	TotalConversations  int64            `json:"totalConversations"`  // 会话总数
+	ActiveConversations int64            `json:"activeConversations"` // 当前活跃会话数
+	TotalMessages       int64            `json:"totalMessages"`       // 消息总数
+	TotalTokens         int64            `json:"totalTokens"`         // 总 token 消耗
+	EstimatedCost       float64          `json:"estimatedCost"`       // 估算总费用（美元）
+	AIResolveRate       float64          `json:"aiResolveRate"`       // AI 解决率 %（closed/total）
+	EscalationRate      float64          `json:"escalationRate"`      // 转人工率 %（waiting_human/total）
+	ByStatus            []ConvStatusStat `json:"byStatus"`            // 各状态会话分布
+	ByChannel           []ChannelStat    `json:"byChannel"`           // 各渠道会话分布
+	ModelUsage          []ModelUsageStat `json:"modelUsage"`          // 各模型使用详情
 }
 
 type AnalyticsOverviewResponse struct {
@@ -34,35 +43,16 @@ type AnalyticsOverviewResponse struct {
 	Data      AnalyticsOverviewData `json:"data"`
 }
 
-type ChannelStat struct {
-	Channel string `json:"channel"` // 接入渠道: web / api / webhook
-	Count   int64  `json:"count"`
-}
-
-type ConvStatusStat struct {
-	Status string `json:"status"` // 会话状态: active / waiting_human / closed
-	Count  int64  `json:"count"`
-}
-
-type DailyStatPoint struct {
-	Date              string `json:"date"`              // 日期 YYYY-MM-DD
-	ConversationCount int64  `json:"conversationCount"` // 新建会话数
-	MessageCount      int64  `json:"messageCount"`      // AI 回复消息数
-	TokenCount        int64  `json:"tokenCount"`        // token 消耗数
-}
-
-type ModelUsageStat struct {
-	Model         string  `json:"model"`         // 模型标识
-	MessageCount  int64   `json:"messageCount"`  // AI 回复消息数
-	TokenCount    int64   `json:"tokenCount"`    // 总 token 数
-	EstimatedCost float64 `json:"estimatedCost"` // 估算费用（美元）
-}
-
 type ApiKeyListResponse struct {
 	Code      int32        `json:"code"`
 	Msg       string       `json:"msg"`
 	Timestamp int64        `json:"timestamp"`
 	Data      []ShowApiKey `json:"data"`
+}
+
+type ChannelStat struct {
+	Channel string `json:"channel"` // 接入渠道: web / api / webhook
+	Count   int64  `json:"count"`   // 数量
 }
 
 type ChatCompletionChoice struct {
@@ -105,6 +95,11 @@ type CommResponse struct {
 	Timestamp int64  `json:"timestamp,example=1715300000000"` // 响应时间戳（Unix 毫秒）
 }
 
+type ConvStatusStat struct {
+	Status string `json:"status"` // 会话状态: active / waiting_human / closed
+	Count  int64  `json:"count"`  // 数量
+}
+
 type ConversationDetailResponse struct {
 	Code      int32            `json:"code"`
 	Msg       string           `json:"msg"`
@@ -122,6 +117,20 @@ type ConversationListResponse struct {
 	Msg       string               `json:"msg"`
 	Timestamp int64                `json:"timestamp"`
 	Data      ConversationListData `json:"data"`
+}
+
+type CreateAdminUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	NickName string `json:"nickName,optional"`
+	Role     string `json:"role,optional"`
+}
+
+type CreateAdminUserResponse struct {
+	Code      int32         `json:"code"`
+	Msg       string        `json:"msg"`
+	Timestamp int64         `json:"timestamp"`
+	Data      ShowAdminUser `json:"data"`
 }
 
 type CreateApiKeyData struct {
@@ -157,6 +166,17 @@ type CreateKnowledgeBaseRequest struct {
 	Model       string `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
 }
 
+type CreateSkillRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Parameters  string `json:"parameters"` // JSON Schema 字符串
+	Endpoint    string `json:"endpoint"`
+	Method      string `json:"method,optional"`    // GET / POST，默认 POST
+	Headers     string `json:"headers,optional"`   // JSON 对象字符串，如 {"Authorization":"Bearer xxx"}
+	TimeoutMs   int    `json:"timeoutMs,optional"` // 0 时使用默认值 5000
+	Enabled     bool   `json:"enabled,optional"`
+}
+
 type CreateWebhookRequest struct {
 	Name        string   `json:"name"`                        // Webhook 名称
 	URL         string   `json:"url"`                         // 回调 URL
@@ -167,6 +187,17 @@ type CreateWebhookRequest struct {
 	TimeoutMs   int      `json:"timeoutMs,default=5000"`      // 超时毫秒
 }
 
+type DailyStatPoint struct {
+	Date              string `json:"date"`              // 日期 YYYY-MM-DD
+	ConversationCount int64  `json:"conversationCount"` // 新建会话数
+	MessageCount      int64  `json:"messageCount"`      // AI 回复消息数
+	TokenCount        int64  `json:"tokenCount"`        // token 消耗数
+}
+
+type DeleteAdminUserRequest struct {
+	ID int64 `path:"id"`
+}
+
 type DeleteDocumentRequest struct {
 	KnowledgeBaseID int64 `path:"kbId"`
 	ID              int64 `path:"id"`
@@ -174,6 +205,10 @@ type DeleteDocumentRequest struct {
 
 type DeleteKnowledgeBaseRequest struct {
 	ID int64 `path:"id"` // 知识库 ID
+}
+
+type DeleteSkillRequest struct {
+	ID int64 `path:"id"`
 }
 
 type DeleteWebhookRequest struct {
@@ -218,6 +253,17 @@ type GetKnowledgeBaseRequest struct {
 	ID int64 `path:"id"` // 知识库 ID
 }
 
+type GetSkillRequest struct {
+	ID int64 `path:"id"`
+}
+
+type GetTenantResponse struct {
+	Code      int32      `json:"code"`
+	Msg       string     `json:"msg"`
+	Timestamp int64      `json:"timestamp"`
+	Data      ShowTenant `json:"data"`
+}
+
 type GetWebhookRequest struct {
 	ID int64 `path:"id"`
 }
@@ -243,6 +289,18 @@ type KnowledgeBaseListResponse struct {
 	Msg       string                `json:"msg"`
 	Timestamp int64                 `json:"timestamp"`
 	Data      KnowledgeBaseListData `json:"data"`
+}
+
+type ListAdminUsersRequest struct {
+	Page     int `form:"page,default=1,range=[1:]"`
+	PageSize int `form:"pageSize,default=20,range=[1:100]"`
+}
+
+type ListAdminUsersResponse struct {
+	Code      int32          `json:"code"`
+	Msg       string         `json:"msg"`
+	Timestamp int64          `json:"timestamp"`
+	Data      AdminUsersData `json:"data"`
 }
 
 type ListConversationRequest struct {
@@ -312,6 +370,13 @@ type ModelListResponse struct {
 	Data      ModelListData `json:"data"`
 }
 
+type ModelUsageStat struct {
+	Model         string  `json:"model"`         // 模型标识
+	MessageCount  int64   `json:"messageCount"`  // AI 回复消息数
+	TokenCount    int64   `json:"tokenCount"`    // 总 token 数
+	EstimatedCost float64 `json:"estimatedCost"` // 估算费用（美元）
+}
+
 type OpenChatMessage struct {
 	Role    string `json:"role"`    // 角色: system / user / assistant
 	Content string `json:"content"` // 消息内容
@@ -349,6 +414,17 @@ type SendMessageResponse struct {
 	Msg       string      `json:"msg"`
 	Timestamp int64       `json:"timestamp"`
 	Data      ShowMessage `json:"data"`
+}
+
+type ShowAdminUser struct {
+	ID        int64  `json:"id"`
+	UUID      string `json:"uuid"`
+	Email     string `json:"email"`
+	NickName  string `json:"nickName"`
+	Role      string `json:"role"`
+	Status    string `json:"status"`
+	LastLogin int64  `json:"lastLogin,omitempty"`
+	CreatedAt int64  `json:"createdAt"`
 }
 
 type ShowApiKey struct {
@@ -424,6 +500,31 @@ type ShowModel struct {
 	IsDefault bool   `json:"isDefault"`           // 是否为默认模型
 }
 
+type ShowSkill struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Parameters  string `json:"parameters"` // JSON Schema 字符串
+	Endpoint    string `json:"endpoint"`
+	Method      string `json:"method"`
+	Headers     string `json:"headers"` // JSON 对象字符串
+	TimeoutMs   int    `json:"timeoutMs"`
+	Enabled     bool   `json:"enabled"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
+type ShowTenant struct {
+	ID        int64  `json:"id"`
+	UUID      string `json:"uuid"`
+	Name      string `json:"name"`
+	Slug      string `json:"slug"`
+	Plan      string `json:"plan"`
+	Status    string `json:"status"`
+	CreatedAt int64  `json:"createdAt"`
+	UpdatedAt int64  `json:"updatedAt"`
+}
+
 type ShowUser struct {
 	ID        int64  `json:"id,example=1"`                                      // 用户 ID
 	UUID      string `json:"uuid,example=550e8400-e29b-41d4-a716-446655440000"` // 用户唯一标识
@@ -452,10 +553,54 @@ type ShowWebhook struct {
 	UpdatedAt   int64    `json:"updatedAt"`
 }
 
+type SkillListResponse struct {
+	Code      int32       `json:"code"`
+	Msg       string      `json:"msg"`
+	Timestamp int64       `json:"timestamp"`
+	Data      []ShowSkill `json:"data"`
+}
+
+type SkillResponse struct {
+	Code      int32     `json:"code"`
+	Msg       string    `json:"msg"`
+	Timestamp int64     `json:"timestamp"`
+	Data      ShowSkill `json:"data"`
+}
+
+type UpdateAdminUserRequest struct {
+	ID     int64  `path:"id"`
+	Role   string `json:"role,optional"`
+	Status string `json:"status,optional"`
+}
+
 type UpdateKnowledgeBaseRequest struct {
 	ID          int64  `path:"id"`                   // 知识库 ID
 	Name        string `json:"name,optional"`        // 知识库名称
 	Description string `json:"description,optional"` // 知识库描述
+}
+
+type UpdateSkillRequest struct {
+	ID          int64  `path:"id"`
+	Name        string `json:"name,optional"`
+	Description string `json:"description,optional"`
+	Parameters  string `json:"parameters,optional"`
+	Endpoint    string `json:"endpoint,optional"`
+	Method      string `json:"method,optional"`
+	Headers     string `json:"headers,optional"`
+	TimeoutMs   int    `json:"timeoutMs,optional"`
+	Enabled     bool   `json:"enabled,optional"`
+}
+
+type UpdateTenantRequest struct {
+	Name string `json:"name,optional"`
+	Plan string `json:"plan,optional"`
+}
+
+type UpdateTenantResponse struct {
+	Code      int32      `json:"code"`
+	Msg       string     `json:"msg"`
+	Timestamp int64      `json:"timestamp"`
+	Data      ShowTenant `json:"data"`
 }
 
 type UpdateWebhookRequest struct {

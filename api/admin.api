@@ -1,0 +1,137 @@
+syntax = "v1"
+
+info (
+	title:   "租户管理后台接口"
+	desc:    "租户管理员管理租户信息和租户内用户"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// ShowTenant 租户展示对象
+	ShowTenant {
+		ID        int64  `json:"id"`
+		UUID      string `json:"uuid"`
+		Name      string `json:"name"`
+		Slug      string `json:"slug"`
+		Plan      string `json:"plan"`
+		Status    string `json:"status"`
+		CreatedAt int64  `json:"createdAt"`
+		UpdatedAt int64  `json:"updatedAt"`
+	}
+
+	// GetTenantResponse 租户详情响应
+	GetTenantResponse {
+		Code      int32      `json:"code"`
+		Msg       string     `json:"msg"`
+		Timestamp int64      `json:"timestamp"`
+		Data      ShowTenant `json:"data"`
+	}
+
+	// UpdateTenantRequest 更新租户设置
+	UpdateTenantRequest {
+		Name string `json:"name,optional"`
+		Plan string `json:"plan,optional"`
+	}
+
+	// UpdateTenantResponse 更新租户响应
+	UpdateTenantResponse {
+		Code      int32      `json:"code"`
+		Msg       string     `json:"msg"`
+		Timestamp int64      `json:"timestamp"`
+		Data      ShowTenant `json:"data"`
+	}
+
+	// ShowAdminUser 管理后台用户展示对象
+	ShowAdminUser {
+		ID        int64  `json:"id"`
+		UUID      string `json:"uuid"`
+		Email     string `json:"email"`
+		NickName  string `json:"nickName"`
+		Role      string `json:"role"`
+		Status    string `json:"status"`
+		LastLogin int64  `json:"lastLogin,omitempty"`
+		CreatedAt int64  `json:"createdAt"`
+	}
+
+	// AdminUsersData 用户列表数据
+	AdminUsersData {
+		Total int64           `json:"total"`
+		List  []ShowAdminUser `json:"list"`
+	}
+
+	// ListAdminUsersRequest 用户列表请求
+	ListAdminUsersRequest {
+		Page     int `form:"page,default=1,range=[1:]"`
+		PageSize int `form:"pageSize,default=20,range=[1:100]"`
+	}
+
+	// ListAdminUsersResponse 用户列表响应
+	ListAdminUsersResponse {
+		Code      int32          `json:"code"`
+		Msg       string         `json:"msg"`
+		Timestamp int64          `json:"timestamp"`
+		Data      AdminUsersData `json:"data"`
+	}
+
+	// CreateAdminUserRequest 创建租户用户
+	CreateAdminUserRequest {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		NickName string `json:"nickName,optional"`
+		Role     string `json:"role,optional"`
+	}
+
+	// CreateAdminUserResponse 用户详情响应
+	CreateAdminUserResponse {
+		Code      int32         `json:"code"`
+		Msg       string        `json:"msg"`
+		Timestamp int64         `json:"timestamp"`
+		Data      ShowAdminUser `json:"data"`
+	}
+
+	// UpdateAdminUserRequest 更新用户角色或状态
+	UpdateAdminUserRequest {
+		ID     int64  `path:"id"`
+		Role   string `json:"role,optional"`
+		Status string `json:"status,optional"`
+	}
+
+	// DeleteAdminUserRequest 删除用户
+	DeleteAdminUserRequest {
+		ID int64 `path:"id"`
+	}
+)
+
+// 管理后台（需要 Admin 鉴权）
+@server (
+	group:      admin
+	prefix:     /api/v1/admin
+	tags:       "管理后台"
+	middleware: AdminMiddleware
+)
+service aipivot-api {
+	@doc "获取当前租户信息"
+	@handler GetTenant
+	get /tenant returns (GetTenantResponse)
+
+	@doc "更新当前租户设置"
+	@handler UpdateTenant
+	put /tenant (UpdateTenantRequest) returns (UpdateTenantResponse)
+
+	@doc "获取租户用户列表"
+	@handler ListUsers
+	get /users (ListAdminUsersRequest) returns (ListAdminUsersResponse)
+
+	@doc "创建租户用户"
+	@handler CreateUser
+	post /users (CreateAdminUserRequest) returns (CreateAdminUserResponse)
+
+	@doc "更新租户用户"
+	@handler UpdateUser
+	put /users/:id (UpdateAdminUserRequest) returns (CreateAdminUserResponse)
+
+	@doc "删除租户用户"
+	@handler DeleteUser
+	delete /users/:id (DeleteAdminUserRequest) returns (CommResponse)
+}

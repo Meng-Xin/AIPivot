@@ -693,6 +693,131 @@ active ────────────────────────�
 **Phase 2 全部完成。** 下一阶段可考虑：
 - P3: 多租户管理后台（租户CRUD + 用户管理）
 - P3: SLA 报表导出（CSV/PDF）
-- P3: 前端 Webhook 配置管理页面
+- ~~P3: 前端 Webhook 配置管理页面~~ ✅
 
-*文档版本：v1.9 | 更新日期：2026-05-22*
+---
+
+### 2026-05-22 P3 — 前端 Webhook 配置管理页面
+
+**完成内容：**
+
+1. **API 客户端补全** — `api.ts` 新增 `ShowWebhook` 类型 + `listWebhooks` / `createWebhook` / `getWebhook` / `updateWebhook` / `deleteWebhook` 共 5 个函数，对齐后端 `/api/v1/webhooks` CRUD 端点
+2. **WebhookPage** — 完整 Webhook 管理页面（`web/src/pages/WebhookPage.tsx`）：
+   - **页头**：标题 + 统计条（总计 / 启用 / 停用 / 渠道类型数）+ 刷新 / 新建按钮
+   - **列表行**：名称 + 渠道类型 / 回调 URL / 状态徽标 / 最近触发时间，点击展开详情
+   - **展开详情**：入站接收 URL（一键复制 + 外链跳转）/ 订阅事件标签 / 配置参数 / 最近错误信息 / 启停 + 编辑 + 删除操作按钮
+   - **新建 / 编辑弹窗**：名称、回调 URL、签名密钥（password 输入）、渠道类型选择、事件多选（复选框列表）、重试次数、超时毫秒
+   - **删除确认弹窗**：二次确认防误删
+   - **空状态**：引导创建第一个 Webhook
+3. **导航集成** — `App.tsx` 侧边栏新增"渠道"导航项（`Webhook` 图标），`NavTab` 类型扩展 `webhook`
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `web/src/lib/api.ts` | 新增 `ShowWebhook` 类型 + 5 个 Webhook CRUD API 函数 |
+| `web/src/pages/WebhookPage.tsx` | **新文件** — Webhook 管理完整页面 |
+| `web/src/App.tsx` | 侧边栏新增"渠道"导航入口 |
+
+**下一步优先级：**
+1. ~~P3: 多租户管理后台（租户CRUD + 用户管理 + Admin API）~~ ✅
+2. P3: SLA 报表导出（CSV/PDF）
+
+---
+
+### 2026-05-22 P3 — 多租户管理后台
+
+**完成内容：**
+
+1. **后端 Repository 扩展** — `UserRepository` 新增 `GetListByTenant` / `Update` / `Delete`；`TenantRepository` 新增 `Update`，对应实现在 `internal/repository/auth/`
+2. **AdminMiddleware** — `internal/middleware/adminMiddleware.go`：在 JWT 校验基础上追加 `role=admin` 校验，非管理员返回 403
+3. **Admin 类型** — `internal/types/types.go` 手动追加 `ShowTenant` / `ShowAdminUser` / `AdminUsersData` / `GetTenantResponse` / `UpdateTenantRequest` / `ListAdminUsersRequest` / `CreateAdminUserRequest` / `UpdateAdminUserRequest` / `DeleteAdminUserRequest` / `ListApiKeysResponse`
+4. **6 个 handler + logic** — `internal/handler/admin/` + `internal/logic/admin/`：getTenant / updateTenant / listUsers / createUser / updateUser / deleteUser，含租户隔离校验（禁止跨租户操作）及自我保护逻辑（不能禁用/删除自己）
+5. **路由注册** — `internal/handler/routes.go` 追加 `/api/v1/admin/` 路由组，受 `AdminMiddleware` 保护
+6. **ServiceContext** — 注入 `AdminMiddleware` 字段
+7. **前端 API 客户端** — `api.ts` 追加 `ShowTenant` / `ShowAdminUser` / `ShowApiKey` / `CreateApiKeyData` 类型 + `getAdminTenant` / `updateAdminTenant` / `listAdminUsers` / `createAdminUser` / `updateAdminUser` / `deleteAdminUser` / `listApiKeys` / `createApiKey` / `revokeApiKey` 共 9 个 API 函数
+8. **AdminPage** — `web/src/pages/AdminPage.tsx`：三 Tab 管理页面
+   - **租户设置 Tab**：只读租户信息（slug / 状态 / 计划 / 创建时间）+ 可编辑字段（名称 / 订阅计划）
+   - **用户管理 Tab**：用户列表（邮箱 / 昵称 / 角色 / 状态 / 最近登录）+ 邀请用户弹窗 + 编辑角色弹窗 + 启停按钮 + 删除确认弹窗 + 分页
+   - **API 密钥 Tab**：密钥列表（名称 / 前缀 / 状态 / 最近使用）+ 新建密钥弹窗（创建后一次性展示完整 Key）+ 吊销按钮
+9. **导航集成** — `App.tsx` 侧边栏对 `role=admin` 用户显示"管理"图标（`Settings`），其他角色不可见
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `internal/modules/auth/auth.go` | 扩展 UserRepository / TenantRepository 接口 |
+| `internal/repository/auth/user.go` | 新增 GetListByTenant / Update / Delete |
+| `internal/repository/auth/tenant.go` | 新增 Update |
+| `internal/middleware/adminMiddleware.go` | **新文件** — Admin 角色中间件 |
+| `internal/types/types.go` | 追加 Admin 相关类型 |
+| `internal/handler/admin/*.go` | **新目录** — 6 个 handler |
+| `internal/logic/admin/*.go` | **新目录** — 6 个 logic |
+| `internal/handler/routes.go` | 追加 admin 路由组 |
+| `internal/svc/servicecontext.go` | 注入 AdminMiddleware |
+| `web/src/lib/api.ts` | 追加 Admin + ApiKey 类型和 API 函数 |
+| `web/src/pages/AdminPage.tsx` | **新文件** — 管理后台完整页面 |
+| `web/src/App.tsx` | 侧边栏对管理员显示"管理"导航 |
+
+**下一步优先级：**
+1. ~~P3: SLA 报表导出（CSV/PDF）~~ ✅
+
+---
+
+### 2026-05-23 P3 — SLA 报表导出（CSV + Print PDF）
+
+**完成内容：**
+
+1. **后端 CSV 导出 API** — `GET /api/v1/analytics/export?days=N`（JWT 鉴权）：
+   - `internal/logic/analytics/exportLogic.go`：复用 `AnalyticsOverviewLogic` + `AnalyticsDailyLogic` 聚合数据，组装结构化 CSV（含 UTF-8 BOM 确保 Excel 正常识别中文）
+   - CSV 结构：报表文件头（生成时间/统计范围）→ 概览 KPI → 日粒度趋势 → 模型用量明细 → 会话状态分布 → 渠道来源分布
+   - `internal/handler/analytics/exportHandler.go`：自定义 Handler 直接写 `text/csv` 二进制响应，设置 `Content-Disposition: attachment; filename="sla-report-*.csv"` + 暴露 `Content-Disposition` 头（`Access-Control-Expose-Headers`，支持跨域场景）
+   - 路由注册到 analytics JWT 鉴权组（`internal/handler/routes.go`）
+2. **前端 CSV 下载** — `web/src/lib/api.ts` 新增 `exportAnalyticsCsv(token, days)` 函数：`fetch` 获取 binary 响应 → 创建 Blob URL → `<a download>` 触发浏览器下载 → 自动释放 Object URL
+3. **前端 Print PDF** — 通过浏览器原生打印（`window.print()`）生成 PDF：
+   - 打印时自动隐藏导航侧栏（`print:hidden` class + `nav[aria-label="main-nav"]` CSS 选择器）
+   - 打印专用文件头：报告标题 / 统计范围 / 生成时间（`print:block` 仅打印时显示）
+   - SVG 图表 `break-inside: avoid` 防止跨页截断
+4. **AnalyticsPage 按钮区** — 原刷新按钮旁新增「导出 CSV」（加载中 Spinner）和「打印 PDF」两个操作按钮
+
+**新增/修改文件清单：**
+
+| 路径 | 用途 |
+|------|------|
+| `internal/logic/analytics/exportLogic.go` | **新文件** — CSV 报表生成逻辑（复用已有查询 + encoding/csv） |
+| `internal/handler/analytics/exportHandler.go` | **新文件** — 二进制文件下载 Handler |
+| `internal/handler/routes.go` | 新增 `/analytics/export` 路由 |
+| `web/src/lib/api.ts` | 新增 `exportAnalyticsCsv` 函数 |
+| `web/src/pages/AnalyticsPage.tsx` | 新增导出/打印按钮 + 打印专用文件头 |
+| `web/src/App.tsx` | nav 添加 `aria-label="main-nav"` + `print:hidden` |
+| `web/src/index.css` | 新增 `@media print` 样式（隐藏侧栏、防截断） |
+
+**下一步优先级：**
+1. P3: 可视化 Flow 编辑器
+2. P3: 多 Agent 协作（Orchestrator-Worker）
+3. P3: 客户自助 Skill 注册
+
+---
+
+### 2026-06-06 P3 — 客户自助 Skill 注册
+
+**完成内容：**
+
+1. **API-First 契约修复** — 新增 `api/admin.api`，并在 `api/entry.api` 中补回 `analytics.api` / `admin.api` 导入，避免 goctl 重新生成时丢失 Admin / Analytics 类型与路由；`analytics.api` 补充 `/analytics/export` 契约，保持 SLA 导出端点可生成可追踪。
+2. **后端生成链路校正** — 重新运行 `make api` 生成 `internal/types/types.go` / `internal/handler/routes.go`，恢复 Analytics / Admin 路由注册；删除 goctl 因历史文件命名不一致新建的空模板重复文件，保留已有业务实现。
+3. **Skill 前端管理页** — 新增 `web/src/pages/SkillPage.tsx`，管理员可查看、新建、编辑、启停、删除租户自定义 HTTP Skill；支持方法选择、Endpoint、描述、超时、参数 JSON Schema、请求头 JSON 配置与前端 JSON 校验。
+4. **导航集成** — `web/src/App.tsx` 新增管理员可见的 "Skill" 导航入口，对齐后端 `AdminMiddleware` 权限要求。
+5. **API 客户端补全** — `web/src/lib/api.ts` 新增 `ShowSkill` / `SkillPayload` 类型，以及 `listSkills` / `createSkill` / `updateSkill` / `deleteSkill` 四个 API 函数。
+6. **HTTP Skill 执行增强** — `internal/modules/agent/tools/http_tool.go` 修正 GET 调用：将 LLM 生成的 JSON 参数附加为 URL query；空 method 默认 POST。
+7. **单元测试补充** — `internal/modules/agent/tools/tools_test.go` 新增 HTTP Skill POST / GET 测试，覆盖请求头、请求体和 query 参数传递。
+
+**验证：**
+
+- `go test ./...` ✅
+- `npm.cmd run build` ✅
+
+**下一步优先级：**
+1. P3: 可视化 Flow 编辑器
+2. P3: 多 Agent 协作（Orchestrator-Worker）
+
+*文档版本：v2.3 | 更新日期：2026-06-06*

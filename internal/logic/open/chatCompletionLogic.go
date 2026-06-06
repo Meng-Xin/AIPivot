@@ -49,7 +49,7 @@ func (l *ChatCompletionLogic) ChatCompletion(req *types.ChatCompletionRequest) (
 	}
 
 	// 调用 RAG 服务（kbID=0 时跳过检索，退化为纯 LLM）
-	result, err := l.svcCtx.RAGService.Answer(l.ctx, req.KnowledgeBaseID, question, history, req.Model)
+	result, err := l.svcCtx.RAGService.Answer(l.ctx, req.KnowledgeBaseID, question, history, req.Model, nil)
 	if err != nil {
 		l.Logger.Errorf("ChatCompletion RAG.Answer err: %v", err)
 		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "AI 回复生成失败")

@@ -21,5 +21,8 @@ import (
 	"chat.api"
 	"models.api"
 	"open.api"
+	"analytics.api"
+	"admin.api"
+	"skills.api"
 )
 

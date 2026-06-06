@@ -56,7 +56,8 @@ func (s *Service) chatModelOrDefault(model string) string {
 // Answer 执行 RAG 问答：retrieve → prompt → generate。
 // kbID 为 0 时跳过检索，直接调用 LLM。
 // model 为空时使用配置中的默认聊天模型。
-func (s *Service) Answer(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string) (*AnswerResult, error) {
+// extraTools 为每次请求动态加载的租户自定义 Skill，不污染全局 Registry。
+func (s *Service) Answer(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string, extraTools []agent.Tool) (*AnswerResult, error) {
 	var contexts []RetrievedChunk
 
 	// 1. 检索相关切块（知识库 ID > 0 时执行）
@@ -79,13 +80,16 @@ func (s *Service) Answer(ctx context.Context, kbID int64, question string, histo
 	var tokenCount int
 	var toolUses []agent.ToolUseRecord
 
-	if s.agent != nil && s.agent.HasTools() {
+	// 有全局工具或租户自定义 Skill 时走 Agent 路径
+	hasTools := (s.agent != nil && s.agent.HasTools()) || len(extraTools) > 0
+	if s.agent != nil && hasTools {
 		// Agent 模式：ReAct 循环可能调用工具后再生成回复
 		result, err := s.agent.Run(ctx, &agent.RunRequest{
 			Model:       chatModel,
 			Messages:    messages,
 			MaxTokens:   s.maxTokens,
 			Temperature: s.temperature,
+			ExtraTools:  extraTools,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("agent run: %w", err)

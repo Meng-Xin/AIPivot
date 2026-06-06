@@ -20,7 +20,8 @@ type StreamMeta struct {
 // 返回 channel 逐步推送增量 token，以及检索来源列表（同步可用）。
 // kbID 为 0 时跳过检索，直接流式调用 LLM。
 // model 为空时使用配置中的默认聊天模型。
-func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string) (<-chan llm.StreamEvent, *StreamMeta, error) {
+// extraTools 为每次请求动态加载的租户自定义 Skill。
+func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string, history []llm.ChatMessage, model string, extraTools []agent.Tool) (<-chan llm.StreamEvent, *StreamMeta, error) {
 	var contexts []RetrievedChunk
 
 	// 检索相关切块（与同步模式共用逻辑）
@@ -40,7 +41,8 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 	var stream <-chan llm.StreamEvent
 	var toolUses []agent.ToolUseRecord
 
-	if s.agent != nil && s.agent.HasTools() {
+	hasTools := (s.agent != nil && s.agent.HasTools()) || len(extraTools) > 0
+	if s.agent != nil && hasTools {
 		var agentMeta *agent.StreamMeta
 		var agentErr error
 		stream, agentMeta, agentErr = s.agent.RunStream(ctx, &agent.RunRequest{
@@ -48,6 +50,7 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 			Messages:    messages,
 			MaxTokens:   s.maxTokens,
 			Temperature: s.temperature,
+			ExtraTools:  extraTools,
 		})
 		if agentErr != nil {
 			return nil, nil, fmt.Errorf("agent stream: %w", agentErr)

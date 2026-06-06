@@ -23,6 +23,7 @@ var (
 	DocumentChunk *documentChunk
 	KnowledgeBase *knowledgeBase
 	Message       *message
+	Skill         *skill
 	Tenant        *tenant
 	User          *user
 	Webhook       *webhook
@@ -36,6 +37,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	DocumentChunk = &Q.DocumentChunk
 	KnowledgeBase = &Q.KnowledgeBase
 	Message = &Q.Message
+	Skill = &Q.Skill
 	Tenant = &Q.Tenant
 	User = &Q.User
 	Webhook = &Q.Webhook
@@ -50,6 +52,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		DocumentChunk: newDocumentChunk(db, opts...),
 		KnowledgeBase: newKnowledgeBase(db, opts...),
 		Message:       newMessage(db, opts...),
+		Skill:         newSkill(db, opts...),
 		Tenant:        newTenant(db, opts...),
 		User:          newUser(db, opts...),
 		Webhook:       newWebhook(db, opts...),
@@ -65,6 +68,7 @@ type Query struct {
 	DocumentChunk documentChunk
 	KnowledgeBase knowledgeBase
 	Message       message
+	Skill         skill
 	Tenant        tenant
 	User          user
 	Webhook       webhook
@@ -81,6 +85,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		DocumentChunk: q.DocumentChunk.clone(db),
 		KnowledgeBase: q.KnowledgeBase.clone(db),
 		Message:       q.Message.clone(db),
+		Skill:         q.Skill.clone(db),
 		Tenant:        q.Tenant.clone(db),
 		User:          q.User.clone(db),
 		Webhook:       q.Webhook.clone(db),
@@ -104,6 +109,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		DocumentChunk: q.DocumentChunk.replaceDB(db),
 		KnowledgeBase: q.KnowledgeBase.replaceDB(db),
 		Message:       q.Message.replaceDB(db),
+		Skill:         q.Skill.replaceDB(db),
 		Tenant:        q.Tenant.replaceDB(db),
 		User:          q.User.replaceDB(db),
 		Webhook:       q.Webhook.replaceDB(db),
@@ -117,6 +123,7 @@ type queryCtx struct {
 	DocumentChunk IDocumentChunkDo
 	KnowledgeBase IKnowledgeBaseDo
 	Message       IMessageDo
+	Skill         ISkillDo
 	Tenant        ITenantDo
 	User          IUserDo
 	Webhook       IWebhookDo
@@ -130,6 +137,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		DocumentChunk: q.DocumentChunk.WithContext(ctx),
 		KnowledgeBase: q.KnowledgeBase.WithContext(ctx),
 		Message:       q.Message.WithContext(ctx),
+		Skill:         q.Skill.WithContext(ctx),
 		Tenant:        q.Tenant.WithContext(ctx),
 		User:          q.User.WithContext(ctx),
 		Webhook:       q.Webhook.WithContext(ctx),

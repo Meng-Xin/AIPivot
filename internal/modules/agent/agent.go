@@ -25,6 +25,8 @@ type RunRequest struct {
 	Messages    []llm.ChatMessage
 	MaxTokens   int
 	Temperature float64
+	// ExtraTools 是本次请求追加的工具（如租户自定义 Skill），不污染全局 Registry。
+	ExtraTools []Tool
 }
 
 // RunResult Agent 执行的最终结果。
@@ -57,7 +59,11 @@ func (a *Agent) Run(ctx context.Context, req *RunRequest) (*RunResult, error) {
 	messages := make([]llm.ChatMessage, len(req.Messages))
 	copy(messages, req.Messages)
 
+	// 合并全局 Registry 工具定义 + 本次请求的 ExtraTools（租户自定义 Skill）
 	defs := a.registry.Definitions()
+	for _, t := range req.ExtraTools {
+		defs = append(defs, t.Definition())
+	}
 	var toolUses []ToolUseRecord
 
 	for round := 0; round < a.maxRounds; round++ {
@@ -94,12 +100,12 @@ func (a *Agent) Run(ctx context.Context, req *RunRequest) (*RunResult, error) {
 			}, nil
 		}
 
-		// 处理 tool_calls：执行每个工具并将结果追加到消息列表
+		// 处理 tool_calls：优先在 ExtraTools 中查找，再查 Registry
 		logx.WithContext(ctx).Infof("agent round %d: %d tool call(s)", round, len(choice.Message.ToolCalls))
 
 		messages = append(messages, choice.Message)
 		for _, tc := range choice.Message.ToolCalls {
-			result, execErr := a.registry.Execute(ctx, tc.Function.Name, tc.Function.Arguments)
+			result, execErr := a.executeWithExtras(ctx, tc.Function.Name, tc.Function.Arguments, req.ExtraTools)
 			if execErr != nil {
 				// 工具执行失败时将错误信息回传给 LLM，由模型决定如何处理
 				result = fmt.Sprintf("Error: %s", execErr.Error())
@@ -122,10 +128,23 @@ func (a *Agent) Run(ctx context.Context, req *RunRequest) (*RunResult, error) {
 	return nil, fmt.Errorf("agent: exceeded max rounds (%d), possible infinite tool loop", a.maxRounds)
 }
 
+// executeWithExtras 先在 ExtraTools 中查找工具，再回退到全局 Registry。
+func (a *Agent) executeWithExtras(ctx context.Context, name, arguments string, extras []Tool) (string, error) {
+	for _, t := range extras {
+		if t.Name() == name {
+			return t.Execute(ctx, arguments)
+		}
+	}
+	return a.registry.Execute(ctx, name, arguments)
+}
+
 // RunStream 流式执行 Agent。
 // 无工具注册时直接走 LLM 流式；有工具时先完成 tool-calling 同步循环，最终回复以 fake stream 返回。
 func (a *Agent) RunStream(ctx context.Context, req *RunRequest) (<-chan llm.StreamEvent, *StreamMeta, error) {
 	defs := a.registry.Definitions()
+	for _, t := range req.ExtraTools {
+		defs = append(defs, t.Definition())
+	}
 
 	// 快速路径：无工具 → 直接流式调用 LLM
 	if len(defs) == 0 {
@@ -164,7 +183,9 @@ func (a *Agent) RunStream(ctx context.Context, req *RunRequest) (<-chan llm.Stre
 	return ch, &StreamMeta{ToolUses: result.ToolUses}, nil
 }
 
-// HasTools 返回 Agent 是否注册了任何工具。
+// HasTools 返回 Agent 是否有可用工具（全局 Registry + ExtraTools）。
+// 注意：ExtraTools 是请求级参数，此方法只检查全局 Registry；
+// RAG 层在有 ExtraTools 时应强制走 Agent 路径（不依赖此方法）。
 func (a *Agent) HasTools() bool {
 	return a.registry.Count() > 0
 }

@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { MessageSquare, BookOpen, Bot, BarChart2 } from "lucide-react";
+import { MessageSquare, BookOpen, Bot, BarChart2, Webhook, Settings, Wrench } from "lucide-react";
 import { useAuthStore } from "./store/auth";
 import LoginPage from "./pages/LoginPage";
 import ChatPage from "./pages/ChatPage";
 import KnowledgePage from "./pages/KnowledgePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import WebhookPage from "./pages/WebhookPage";
+import AdminPage from "./pages/AdminPage";
+import SkillPage from "./pages/SkillPage";
 
-type NavTab = "chat" | "knowledge" | "analytics";
+type NavTab = "chat" | "knowledge" | "analytics" | "webhook" | "skill" | "admin";
 
 export default function App() {
-  const token = useAuthStore((s) => s.token);
+  const { token, user } = useAuthStore();
   const [tab, setTab] = useState<NavTab>("chat");
 
   if (!token) return <LoginPage />;
@@ -17,7 +20,7 @@ export default function App() {
   return (
     <div className="flex h-full">
       {/* 导航侧栏 */}
-      <nav className="flex w-14 flex-col items-center border-r border-slate-200 bg-slate-900 py-4">
+      <nav aria-label="main-nav" className="flex w-14 flex-col items-center border-r border-slate-200 bg-slate-900 py-4 print:hidden">
         <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
           <Bot className="h-5 w-5 text-white" />
         </div>
@@ -39,6 +42,28 @@ export default function App() {
           active={tab === "analytics"}
           onClick={() => setTab("analytics")}
         />
+        <NavButton
+          icon={<Webhook className="h-5 w-5" />}
+          label="渠道"
+          active={tab === "webhook"}
+          onClick={() => setTab("webhook")}
+        />
+        {user?.role === "admin" && (
+          <>
+            <NavButton
+              icon={<Wrench className="h-5 w-5" />}
+              label="Skill"
+              active={tab === "skill"}
+              onClick={() => setTab("skill")}
+            />
+            <NavButton
+              icon={<Settings className="h-5 w-5" />}
+              label="管理"
+              active={tab === "admin"}
+              onClick={() => setTab("admin")}
+            />
+          </>
+        )}
       </nav>
 
       {/* 页面内容 */}
@@ -46,6 +71,9 @@ export default function App() {
         {tab === "chat" && <ChatPage />}
         {tab === "knowledge" && <KnowledgePage />}
         {tab === "analytics" && <AnalyticsPage />}
+        {tab === "webhook" && <WebhookPage />}
+        {tab === "skill" && <SkillPage />}
+        {tab === "admin" && <AdminPage />}
       </div>
     </div>
   );

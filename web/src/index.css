@@ -24,6 +24,26 @@ body,
   background: rgba(148, 163, 184, 0.5);
 }
 
+/* 打印样式：隐藏导航侧边栏，只保留内容区域 */
+@media print {
+  /* 左侧 icon 导航栏 */
+  nav[aria-label="main-nav"] {
+    display: none !important;
+  }
+  /* 确保内容区域铺满打印页 */
+  #root {
+    height: auto;
+  }
+  /* 避免 SVG 图表在打印时被截断 */
+  svg {
+    break-inside: avoid;
+  }
+  /* 卡片和面板避免跨页断开 */
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+}
+
 /* 流式打字光标动画 */
 @keyframes blink {
   0%, 100% { opacity: 1; }

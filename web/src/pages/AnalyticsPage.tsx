@@ -7,11 +7,14 @@ import {
   CheckCircle,
   AlertTriangle,
   RefreshCw,
+  Download,
+  Printer,
 } from "lucide-react";
 import { useAuthStore } from "../store/auth";
 import {
   getAnalyticsOverview,
   getAnalyticsDaily,
+  exportAnalyticsCsv,
   type AnalyticsOverviewData,
   type DailyStatPoint,
 } from "../lib/api";
@@ -308,6 +311,19 @@ export default function AnalyticsPage() {
   const [daily, setDaily] = useState<DailyStatPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCsv = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportAnalyticsCsv(token, days);
+    } catch (e) {
+      alert(`导出失败: ${String(e)}`);
+    } finally {
+      setExporting(false);
+    }
+  }, [token, days, exporting]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -385,9 +401,17 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-auto bg-slate-50">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+    <div className="flex h-full flex-col overflow-auto bg-slate-50 print:overflow-visible print:bg-white">
+      {/* 打印专用文件头 */}
+      <div className="hidden print:block px-6 py-4 border-b border-slate-200">
+        <h1 className="text-xl font-bold text-slate-800">AIPivot SLA 报表</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          统计范围：最近 {days} 天 &nbsp;·&nbsp; 生成时间：{new Date().toLocaleString("zh-CN")}
+        </p>
+      </div>
+
+      {/* Header（打印时隐藏操作区） */}
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 print:hidden">
         <h1 className="text-lg font-semibold text-slate-800">对话分析</h1>
         <div className="flex items-center gap-3">
           <div className="flex overflow-hidden rounded-lg border border-slate-200">
@@ -405,6 +429,25 @@ export default function AnalyticsPage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={handleExportCsv}
+            disabled={exporting}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {exporting ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            导出 CSV
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            打印 PDF
+          </button>
           <button
             onClick={load}
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"

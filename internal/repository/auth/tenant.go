@@ -36,3 +36,9 @@ func (r *TenantRepo) GetByID(ctx context.Context, id int64) (*po.Tenant, error) 
 	}
 	return tenant, err
 }
+
+func (r *TenantRepo) Update(ctx context.Context, tenant *po.Tenant) error {
+	t := r.q.Tenant
+	_, err := t.WithContext(ctx).Where(t.ID.Eq(tenant.ID)).Updates(tenant)
+	return err
+}

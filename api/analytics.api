@@ -70,6 +70,11 @@ type (
 		Timestamp int64            `json:"timestamp"`
 		Data      []DailyStatPoint `json:"data"`
 	}
+
+	// AnalyticsExportRequest SLA 报表导出请求
+	AnalyticsExportRequest {
+		Days int `form:"days,default=30,range=[1:90]"` // 统计最近 N 天（1-90）
+	}
 )
 
 // 数据分析（需要 JWT 鉴权）
@@ -87,4 +92,8 @@ service aipivot-api {
 	@doc "获取日粒度对话统计趋势（最近 N 天）"
 	@handler AnalyticsDaily
 	get /analytics/daily (AnalyticsDailyRequest) returns (AnalyticsDailyResponse)
+
+	@doc "导出 SLA 报表 CSV"
+	@handler ExportReport
+	get /analytics/export (AnalyticsExportRequest) returns (CommResponse)
 }

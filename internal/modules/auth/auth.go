@@ -53,11 +53,19 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, tenantID int64, email string) (*po.User, error)
 	GetByID(ctx context.Context, id int64) (*po.User, error)
 	UpdateLastLogin(ctx context.Context, id int64) error
+
+	// Admin management methods
+	GetListByTenant(ctx context.Context, tenantID int64, page, pageSize int) ([]*po.User, int64, error)
+	Update(ctx context.Context, user *po.User) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type TenantRepository interface {
 	GetBySlug(ctx context.Context, slug string) (*po.Tenant, error)
 	GetByID(ctx context.Context, id int64) (*po.Tenant, error)
+
+	// Admin management method
+	Update(ctx context.Context, tenant *po.Tenant) error
 }
 
 type ApiKeyRepository interface {

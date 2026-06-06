@@ -3,8 +3,12 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"aipivot/internal/shared/po"
 )
 
 func TestWeatherTool_Execute(t *testing.T) {
@@ -113,5 +117,72 @@ func TestCalculatorTool_Execute_DivByZero(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "division by zero") {
 		t.Errorf("expected 'division by zero' in error, got: %v", err)
+	}
+}
+
+func TestHttpTool_Execute_POST(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if got := r.Header.Get("X-Test"); got != "ok" {
+			t.Errorf("expected X-Test header, got %q", got)
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode body: %v", err)
+		}
+		if body["query"] != "order-1" {
+			t.Errorf("expected query=order-1, got %q", body["query"])
+		}
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	tool := NewHttpToolFromSkill(&po.Skill{
+		Name:        "query_order",
+		Description: "query order",
+		Endpoint:    server.URL,
+		Method:      "POST",
+		Headers:     po.JSONMap{"X-Test": "ok"},
+		Parameters:  po.JSONMap{"type": "object"},
+		TimeoutMs:   1000,
+	})
+
+	result, err := tool.Execute(context.Background(), `{"query":"order-1"}`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != `{"status":"ok"}` {
+		t.Fatalf("unexpected result: %s", result)
+	}
+}
+
+func TestHttpTool_Execute_GETQuery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if got := r.URL.Query().Get("orderId"); got != "A100" {
+			t.Errorf("expected orderId=A100, got %q", got)
+		}
+		_, _ = w.Write([]byte(`done`))
+	}))
+	defer server.Close()
+
+	tool := NewHttpToolFromSkill(&po.Skill{
+		Name:       "get_order",
+		Endpoint:   server.URL,
+		Method:     "GET",
+		Parameters: po.JSONMap{"type": "object"},
+		TimeoutMs:  1000,
+	})
+
+	result, err := tool.Execute(context.Background(), `{"orderId":"A100"}`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "done" {
+		t.Fatalf("unexpected result: %s", result)
 	}
 }

@@ -50,3 +50,25 @@ func (r *UserRepo) UpdateLastLogin(ctx context.Context, id int64) error {
 	_, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Update(u.LastLogin, &now)
 	return err
 }
+
+func (r *UserRepo) GetListByTenant(ctx context.Context, tenantID int64, page, pageSize int) ([]*po.User, int64, error) {
+	u := r.q.User
+	offset := (page - 1) * pageSize
+	users, count, err := u.WithContext(ctx).
+		Where(u.TenantID.Eq(tenantID)).
+		Order(u.CreatedAt.Desc()).
+		FindByPage(offset, pageSize)
+	return users, count, err
+}
+
+func (r *UserRepo) Update(ctx context.Context, user *po.User) error {
+	u := r.q.User
+	_, err := u.WithContext(ctx).Where(u.ID.Eq(user.ID)).Updates(user)
+	return err
+}
+
+func (r *UserRepo) Delete(ctx context.Context, id int64) error {
+	u := r.q.User
+	_, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Delete()
+	return err
+}

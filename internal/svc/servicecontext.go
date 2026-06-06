@@ -19,6 +19,7 @@ import (
 	authrepo "aipivot/internal/repository/auth"
 	chatrepo "aipivot/internal/repository/chat"
 	knowledgerepo "aipivot/internal/repository/knowledge"
+	skillrepo "aipivot/internal/repository/skill"
 	webhookrepo "aipivot/internal/repository/webhook"
 	"aipivot/internal/shared/query"
 	"aipivot/internal/shared/ratelimit"
@@ -40,6 +41,7 @@ type ServiceContext struct {
 
 	// 路由级中间件
 	AuthMiddleware   func(http.HandlerFunc) http.HandlerFunc
+	AdminMiddleware  func(http.HandlerFunc) http.HandlerFunc // Admin 端点，要求 role=admin
 	ApiKeyMiddleware func(http.HandlerFunc) http.HandlerFunc // Open API 使用 API Key 认证
 
 	// Auth Repo
@@ -57,6 +59,9 @@ type ServiceContext struct {
 	// Chat Repo
 	ConversationRepo chat.ConversationRepository
 	MessageRepo      chat.MessageRepository
+
+	// Skill（租户自定义工具）
+	SkillRepo skillrepo.Repository
 
 	// Webhook
 	WebhookRepo     webhook.Repository
@@ -139,6 +144,7 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		Redis:            redisClient,
 		Metrics:          metrics,
 		AuthMiddleware:   middleware.NewAuthMiddleware(c.Auth).Handle,
+		AdminMiddleware:  middleware.NewAdminMiddleware(c.Auth).Handle,
 		ApiKeyMiddleware: middleware.NewApiKeyMiddleware(apiKeyRepo).Handle,
 
 		// Auth
@@ -154,6 +160,9 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		// Chat
 		ConversationRepo: chatrepo.NewConversationRepo(q),
 		MessageRepo:      chatrepo.NewMessageRepo(q),
+
+		// Skill
+		SkillRepo: skillrepo.NewSkillRepo(q, db),
 
 		// Webhook
 		WebhookRepo:     wbRepo,

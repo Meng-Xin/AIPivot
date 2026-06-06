@@ -105,7 +105,10 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		return nil, err
 	}
 
-	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history, conv.Model)
+	// 加载租户启用的自定义 Skill 作为 Agent 请求级工具
+	extraTools := loadTenantSkills(l.ctx, l.svcCtx, tenantID)
+
+	result, err := l.svcCtx.RAGService.Answer(l.ctx, kbID, req.Content, history, conv.Model, extraTools)
 	if err != nil {
 		l.Logger.Errorf("SendMessage RAG.Answer err: %v", err)
 		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")

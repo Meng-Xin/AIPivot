@@ -27,6 +27,7 @@ func main() {
 		po.Conversation{},
 		po.Message{},
 		po.Webhook{},
+		po.Skill{},
 	)
 
 	g.Execute()

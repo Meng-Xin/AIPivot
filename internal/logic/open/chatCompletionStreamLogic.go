@@ -58,7 +58,7 @@ func (l *ChatCompletionStreamLogic) ChatCompletionStream(w http.ResponseWriter, 
 	}
 
 	// 调用 RAG 流式生成
-	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, req.KnowledgeBaseID, question, history, req.Model)
+	stream, meta, err := l.svcCtx.RAGService.AnswerStream(l.ctx, req.KnowledgeBaseID, question, history, req.Model, nil)
 	if err != nil {
 		l.Logger.Errorf("ChatCompletionStream RAG.AnswerStream err: %v", err)
 		sseWriter.WriteError(errorx.CodeLLMUnavailable, "AI 回复生成失败")

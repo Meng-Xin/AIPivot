@@ -442,6 +442,67 @@ export async function deleteDocument(
   );
 }
 
+// ==================== Webhook API ====================
+
+export interface ShowWebhook {
+  id: number;
+  uuid: string;
+  name: string;
+  url: string;
+  events: string[];
+  channelType: string;
+  status: string;
+  retryCount: number;
+  timeoutMs: number;
+  lastError?: string;
+  lastTrigger?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export async function listWebhooks(token: string) {
+  return request<ShowWebhook[]>("GET", "/api/v1/webhooks", token);
+}
+
+export async function createWebhook(
+  token: string,
+  data: {
+    name: string;
+    url: string;
+    secret?: string;
+    events?: string[];
+    channelType?: string;
+    retryCount?: number;
+    timeoutMs?: number;
+  }
+) {
+  return request<ShowWebhook>("POST", "/api/v1/webhooks", token, data);
+}
+
+export async function getWebhook(token: string, id: number) {
+  return request<ShowWebhook>("GET", `/api/v1/webhooks/${id}`, token);
+}
+
+export async function updateWebhook(
+  token: string,
+  id: number,
+  data: {
+    name?: string;
+    url?: string;
+    secret?: string;
+    events?: string[];
+    status?: string;
+    retryCount?: number;
+    timeoutMs?: number;
+  }
+) {
+  return request<null>("PUT", `/api/v1/webhooks/${id}`, token, data);
+}
+
+export async function deleteWebhook(token: string, id: number) {
+  return request<null>("DELETE", `/api/v1/webhooks/${id}`, token);
+}
+
 // ==================== Analytics API ====================
 
 export interface ConvStatusStat {
@@ -495,4 +556,178 @@ export async function getAnalyticsDaily(token: string, days = 7) {
     `/api/v1/analytics/daily?days=${days}`,
     token
   );
+}
+
+// 导出 SLA 报表 CSV：fetch 二进制响应 → Blob → 触发浏览器下载
+export async function exportAnalyticsCsv(token: string, days = 30): Promise<void> {
+  const resp = await fetch(`/api/v1/analytics/export?days=${days}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Export failed: ${resp.status}`);
+  const blob = await resp.blob();
+  // 从 Content-Disposition 中提取服务端生成的文件名，否则回退到默认值
+  const disposition = resp.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? `sla-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ==================== Admin API ====================
+
+export interface ShowTenant {
+  id: number;
+  uuid: string;
+  name: string;
+  slug: string;
+  plan: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ShowAdminUser {
+  id: number;
+  uuid: string;
+  email: string;
+  nickName: string;
+  role: string;
+  status: string;
+  lastLogin?: number;
+  createdAt: number;
+}
+
+export interface AdminUsersData {
+  total: number;
+  list: ShowAdminUser[];
+}
+
+export async function getAdminTenant(token: string) {
+  return request<ShowTenant>("GET", "/api/v1/admin/tenant", token);
+}
+
+export async function updateAdminTenant(
+  token: string,
+  data: { name?: string; plan?: string }
+) {
+  return request<ShowTenant>("PUT", "/api/v1/admin/tenant", token, data);
+}
+
+export async function listAdminUsers(
+  token: string,
+  page = 1,
+  pageSize = 20
+) {
+  return request<AdminUsersData>(
+    "GET",
+    `/api/v1/admin/users?page=${page}&pageSize=${pageSize}`,
+    token
+  );
+}
+
+export async function createAdminUser(
+  token: string,
+  data: { email: string; nickName: string; password: string; role?: string }
+) {
+  return request<ShowAdminUser>("POST", "/api/v1/admin/users", token, data);
+}
+
+export async function updateAdminUser(
+  token: string,
+  id: number,
+  data: { role?: string; status?: string }
+) {
+  return request<ShowAdminUser>("PUT", `/api/v1/admin/users/${id}`, token, data);
+}
+
+export async function deleteAdminUser(token: string, id: number) {
+  return request<null>("DELETE", `/api/v1/admin/users/${id}`, token);
+}
+
+// ==================== API Key Management ====================
+
+export interface ShowApiKey {
+  id: number;
+  name: string;
+  keyPrefix: string;
+  scopes: string[];
+  status: string;
+  lastUsed?: number;
+  expiresAt?: number;
+  createdAt: number;
+}
+
+export interface CreateApiKeyData {
+  id: number;
+  name: string;
+  key: string;
+  keyPrefix: string;
+  scopes: string[];
+}
+
+export async function listApiKeys(token: string) {
+  return request<ShowApiKey[]>("GET", "/api/v1/api-keys", token);
+}
+
+export async function createApiKey(
+  token: string,
+  data: { name: string; scopes?: string[] }
+) {
+  return request<CreateApiKeyData>("POST", "/api/v1/api-keys", token, data);
+}
+
+export async function revokeApiKey(token: string, id: number) {
+  return request<null>("PUT", `/api/v1/api-keys/${id}/revoke`, token);
+}
+
+// ==================== Skill API ====================
+
+export interface ShowSkill {
+  id: number;
+  name: string;
+  description: string;
+  parameters: string;
+  endpoint: string;
+  method: string;
+  headers: string;
+  timeoutMs: number;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface SkillPayload {
+  name: string;
+  description: string;
+  parameters: string;
+  endpoint: string;
+  method?: string;
+  headers?: string;
+  timeoutMs?: number;
+  enabled?: boolean;
+}
+
+export async function listSkills(token: string) {
+  return request<ShowSkill[]>("GET", "/api/v1/skills", token);
+}
+
+export async function createSkill(token: string, data: SkillPayload) {
+  return request<ShowSkill>("POST", "/api/v1/skills", token, data);
+}
+
+export async function updateSkill(
+  token: string,
+  id: number,
+  data: Partial<SkillPayload>
+) {
+  return request<ShowSkill>("PUT", `/api/v1/skills/${id}`, token, data);
+}
+
+export async function deleteSkill(token: string, id: number) {
+  return request<null>("DELETE", `/api/v1/skills/${id}`, token);
 }

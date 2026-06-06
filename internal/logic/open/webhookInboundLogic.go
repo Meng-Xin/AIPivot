@@ -96,7 +96,7 @@ func (l *WebhookInboundLogic) WebhookInbound(req *types.WebhookInboundRequest) (
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, convID)
 
 	// 调用 RAG 生成 AI 回复
-	result, err := l.svcCtx.RAGService.Answer(l.ctx, 0, req.Content, []llm.ChatMessage{}, "")
+	result, err := l.svcCtx.RAGService.Answer(l.ctx, 0, req.Content, []llm.ChatMessage{}, "", nil)
 	if err != nil {
 		l.Logger.Errorf("WebhookInbound RAG.Answer err: %v", err)
 		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "AI 回复生成失败")
