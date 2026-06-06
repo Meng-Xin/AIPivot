@@ -817,7 +817,29 @@ active ────────────────────────�
 - `npm.cmd run build` ✅
 
 **下一步优先级：**
-1. P3: 可视化 Flow 编辑器
+1. ~~P3: 可视化 Flow 编辑器~~ ✅
 2. P3: 多 Agent 协作（Orchestrator-Worker）
 
-*文档版本：v2.3 | 更新日期：2026-06-06*
+---
+
+### 2026-06-07 P3 — 可视化 Flow 编辑器
+
+**完成内容：**
+
+1. **Flow 数据模型与迁移** — 新增 `flows` 表（`migrations/000007_flows.*.sql`），按 `tenant_id` 隔离，使用 `definition JSONB` 保存画布节点、连线和视图配置；补齐表/字段 COMMENT 与租户/状态索引。
+2. **API-First 契约** — 新增 `api/flows.api` 并导入 `api/entry.api`，提供 `POST /api/v1/flows`、`GET /api/v1/flows`、`GET/PUT/DELETE /api/v1/flows/:id`，由 `AdminMiddleware` 保护。
+3. **PO / Query / Repo** — 新增 `internal/shared/po/flow.go`、生成 `internal/shared/query/flows.gen.go`，并实现 `internal/repository/flow`，提供租户内 CRUD。
+4. **Flow Logic** — `internal/logic/flows/` 实现创建、列表、详情、更新、删除；创建显式写入 UUID，definition 做 JSON 校验，status 限定 `draft / published / archived`，更新时递增 version。
+5. **ServiceContext 注入** — `internal/svc/servicecontext.go` 注入 `FlowRepo`，保持 Logic → Repo 的既有调用边界。
+6. **前端 Flow 编辑器** — 新增 `web/src/pages/FlowPage.tsx`：支持 Flow 列表、新建、编辑元信息、保存、删除、状态切换；画布支持添加 trigger/llm/skill/condition/end 节点、拖拽节点、点击连线、删除连线、右侧 Inspector 编辑节点配置 JSON。
+7. **前端 API 与导航** — `web/src/lib/api.ts` 新增 Flow 类型和 CRUD 函数；`web/src/App.tsx` 新增管理员可见的 "Flow" 导航入口。
+
+**验证：**
+
+- `go test ./...` ✅
+- `npm.cmd run build` ✅
+
+**下一步优先级：**
+1. P3: 多 Agent 协作（Orchestrator-Worker）
+
+*文档版本：v2.4 | 更新日期：2026-06-07*

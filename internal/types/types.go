@@ -160,6 +160,13 @@ type CreateConversationRequest struct {
 	Channel         string `json:"channel,default=web"`      // 接入渠道: web / api / webhook
 }
 
+type CreateFlowRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,optional"`
+	Definition  string `json:"definition,optional"` // Flow definition JSON 字符串
+	Status      string `json:"status,optional"`     // draft / published / archived
+}
+
 type CreateKnowledgeBaseRequest struct {
 	Name        string `json:"name"`                                          // 知识库名称
 	Description string `json:"description,optional"`                          // 知识库描述
@@ -201,6 +208,10 @@ type DeleteAdminUserRequest struct {
 type DeleteDocumentRequest struct {
 	KnowledgeBaseID int64 `path:"kbId"`
 	ID              int64 `path:"id"`
+}
+
+type DeleteFlowRequest struct {
+	ID int64 `path:"id"`
 }
 
 type DeleteKnowledgeBaseRequest struct {
@@ -245,7 +256,25 @@ type EscalateConversationRequest struct {
 	Reason string `json:"reason,optional"` // 转接原因（可选）
 }
 
+type FlowListResponse struct {
+	Code      int32      `json:"code"`
+	Msg       string     `json:"msg"`
+	Timestamp int64      `json:"timestamp"`
+	Data      []ShowFlow `json:"data"`
+}
+
+type FlowResponse struct {
+	Code      int32    `json:"code"`
+	Msg       string   `json:"msg"`
+	Timestamp int64    `json:"timestamp"`
+	Data      ShowFlow `json:"data"`
+}
+
 type GetConversationRequest struct {
+	ID int64 `path:"id"`
+}
+
+type GetFlowRequest struct {
 	ID int64 `path:"id"`
 }
 
@@ -464,6 +493,18 @@ type ShowDocument struct {
 	UpdatedAt   int64  `json:"updatedAt"`
 }
 
+type ShowFlow struct {
+	ID          int64  `json:"id"`
+	UUID        string `json:"uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Definition  string `json:"definition"` // Flow definition JSON 字符串
+	Status      string `json:"status"`
+	Version     int    `json:"version"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
 type ShowKnowledgeBase struct {
 	ID          int64  `json:"id"`          // 知识库 ID
 	UUID        string `json:"uuid"`        // 唯一标识
@@ -571,6 +612,14 @@ type UpdateAdminUserRequest struct {
 	ID     int64  `path:"id"`
 	Role   string `json:"role,optional"`
 	Status string `json:"status,optional"`
+}
+
+type UpdateFlowRequest struct {
+	ID          int64  `path:"id"`
+	Name        string `json:"name,optional"`
+	Description string `json:"description,optional"`
+	Definition  string `json:"definition,optional"`
+	Status      string `json:"status,optional"` // draft / published / archived
 }
 
 type UpdateKnowledgeBaseRequest struct {

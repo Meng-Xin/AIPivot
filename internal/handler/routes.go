@@ -11,6 +11,7 @@ import (
 	apikey "aipivot/internal/handler/apikey"
 	auth "aipivot/internal/handler/auth"
 	chat "aipivot/internal/handler/chat"
+	flows "aipivot/internal/handler/flows"
 	infra "aipivot/internal/handler/infra"
 	knowledge "aipivot/internal/handler/knowledge"
 	models "aipivot/internal/handler/models"
@@ -185,6 +186,45 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPut,
 					Path:    "/conversations/:id/escalate",
 					Handler: chat.EscalateConversationHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AdminMiddleware},
+			[]rest.Route{
+				{
+					// 创建 Flow
+					Method:  http.MethodPost,
+					Path:    "/flows",
+					Handler: flows.CreateFlowHandler(serverCtx),
+				},
+				{
+					// 获取 Flow 列表
+					Method:  http.MethodGet,
+					Path:    "/flows",
+					Handler: flows.ListFlowsHandler(serverCtx),
+				},
+				{
+					// 获取 Flow 详情
+					Method:  http.MethodGet,
+					Path:    "/flows/:id",
+					Handler: flows.GetFlowHandler(serverCtx),
+				},
+				{
+					// 更新 Flow
+					Method:  http.MethodPut,
+					Path:    "/flows/:id",
+					Handler: flows.UpdateFlowHandler(serverCtx),
+				},
+				{
+					// 删除 Flow
+					Method:  http.MethodDelete,
+					Path:    "/flows/:id",
+					Handler: flows.DeleteFlowHandler(serverCtx),
 				},
 			}...,
 		),

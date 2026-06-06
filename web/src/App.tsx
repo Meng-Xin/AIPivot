@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, BookOpen, Bot, BarChart2, Webhook, Settings, Wrench } from "lucide-react";
+import { MessageSquare, BookOpen, Bot, BarChart2, Webhook, Settings, Wrench, GitBranch } from "lucide-react";
 import { useAuthStore } from "./store/auth";
 import LoginPage from "./pages/LoginPage";
 import ChatPage from "./pages/ChatPage";
@@ -8,8 +8,9 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import WebhookPage from "./pages/WebhookPage";
 import AdminPage from "./pages/AdminPage";
 import SkillPage from "./pages/SkillPage";
+import FlowPage from "./pages/FlowPage";
 
-type NavTab = "chat" | "knowledge" | "analytics" | "webhook" | "skill" | "admin";
+type NavTab = "chat" | "knowledge" | "analytics" | "webhook" | "flow" | "skill" | "admin";
 
 export default function App() {
   const { token, user } = useAuthStore();
@@ -51,6 +52,12 @@ export default function App() {
         {user?.role === "admin" && (
           <>
             <NavButton
+              icon={<GitBranch className="h-5 w-5" />}
+              label="Flow"
+              active={tab === "flow"}
+              onClick={() => setTab("flow")}
+            />
+            <NavButton
               icon={<Wrench className="h-5 w-5" />}
               label="Skill"
               active={tab === "skill"}
@@ -72,6 +79,7 @@ export default function App() {
         {tab === "knowledge" && <KnowledgePage />}
         {tab === "analytics" && <AnalyticsPage />}
         {tab === "webhook" && <WebhookPage />}
+        {tab === "flow" && <FlowPage />}
         {tab === "skill" && <SkillPage />}
         {tab === "admin" && <AdminPage />}
       </div>

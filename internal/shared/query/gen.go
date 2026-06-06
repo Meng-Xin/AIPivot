@@ -21,6 +21,7 @@ var (
 	Conversation  *conversation
 	Document      *document
 	DocumentChunk *documentChunk
+	Flow          *flow
 	KnowledgeBase *knowledgeBase
 	Message       *message
 	Skill         *skill
@@ -35,6 +36,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Conversation = &Q.Conversation
 	Document = &Q.Document
 	DocumentChunk = &Q.DocumentChunk
+	Flow = &Q.Flow
 	KnowledgeBase = &Q.KnowledgeBase
 	Message = &Q.Message
 	Skill = &Q.Skill
@@ -50,6 +52,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Conversation:  newConversation(db, opts...),
 		Document:      newDocument(db, opts...),
 		DocumentChunk: newDocumentChunk(db, opts...),
+		Flow:          newFlow(db, opts...),
 		KnowledgeBase: newKnowledgeBase(db, opts...),
 		Message:       newMessage(db, opts...),
 		Skill:         newSkill(db, opts...),
@@ -66,6 +69,7 @@ type Query struct {
 	Conversation  conversation
 	Document      document
 	DocumentChunk documentChunk
+	Flow          flow
 	KnowledgeBase knowledgeBase
 	Message       message
 	Skill         skill
@@ -83,6 +87,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Conversation:  q.Conversation.clone(db),
 		Document:      q.Document.clone(db),
 		DocumentChunk: q.DocumentChunk.clone(db),
+		Flow:          q.Flow.clone(db),
 		KnowledgeBase: q.KnowledgeBase.clone(db),
 		Message:       q.Message.clone(db),
 		Skill:         q.Skill.clone(db),
@@ -107,6 +112,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Conversation:  q.Conversation.replaceDB(db),
 		Document:      q.Document.replaceDB(db),
 		DocumentChunk: q.DocumentChunk.replaceDB(db),
+		Flow:          q.Flow.replaceDB(db),
 		KnowledgeBase: q.KnowledgeBase.replaceDB(db),
 		Message:       q.Message.replaceDB(db),
 		Skill:         q.Skill.replaceDB(db),
@@ -121,6 +127,7 @@ type queryCtx struct {
 	Conversation  IConversationDo
 	Document      IDocumentDo
 	DocumentChunk IDocumentChunkDo
+	Flow          IFlowDo
 	KnowledgeBase IKnowledgeBaseDo
 	Message       IMessageDo
 	Skill         ISkillDo
@@ -135,6 +142,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Conversation:  q.Conversation.WithContext(ctx),
 		Document:      q.Document.WithContext(ctx),
 		DocumentChunk: q.DocumentChunk.WithContext(ctx),
+		Flow:          q.Flow.WithContext(ctx),
 		KnowledgeBase: q.KnowledgeBase.WithContext(ctx),
 		Message:       q.Message.WithContext(ctx),
 		Skill:         q.Skill.WithContext(ctx),

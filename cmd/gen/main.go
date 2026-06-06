@@ -28,6 +28,7 @@ func main() {
 		po.Message{},
 		po.Webhook{},
 		po.Skill{},
+		po.Flow{},
 	)
 
 	g.Execute()

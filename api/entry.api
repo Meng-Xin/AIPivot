@@ -24,5 +24,6 @@ import (
 	"analytics.api"
 	"admin.api"
 	"skills.api"
+	"flows.api"
 )
 

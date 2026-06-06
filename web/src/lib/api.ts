@@ -731,3 +731,44 @@ export async function updateSkill(
 export async function deleteSkill(token: string, id: number) {
   return request<null>("DELETE", `/api/v1/skills/${id}`, token);
 }
+
+// ==================== Flow API ====================
+
+export interface ShowFlow {
+  id: number;
+  uuid: string;
+  name: string;
+  description: string;
+  definition: string;
+  status: "draft" | "published" | "archived" | string;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FlowPayload {
+  name: string;
+  description?: string;
+  definition?: string;
+  status?: "draft" | "published" | "archived";
+}
+
+export async function listFlows(token: string) {
+  return request<ShowFlow[]>("GET", "/api/v1/flows", token);
+}
+
+export async function createFlow(token: string, data: FlowPayload) {
+  return request<ShowFlow>("POST", "/api/v1/flows", token, data);
+}
+
+export async function updateFlow(
+  token: string,
+  id: number,
+  data: Partial<FlowPayload>
+) {
+  return request<ShowFlow>("PUT", `/api/v1/flows/${id}`, token, data);
+}
+
+export async function deleteFlow(token: string, id: number) {
+  return request<null>("DELETE", `/api/v1/flows/${id}`, token);
+}

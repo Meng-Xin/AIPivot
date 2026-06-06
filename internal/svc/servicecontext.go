@@ -18,6 +18,7 @@ import (
 	"aipivot/internal/observability"
 	authrepo "aipivot/internal/repository/auth"
 	chatrepo "aipivot/internal/repository/chat"
+	flowrepo "aipivot/internal/repository/flow"
 	knowledgerepo "aipivot/internal/repository/knowledge"
 	skillrepo "aipivot/internal/repository/skill"
 	webhookrepo "aipivot/internal/repository/webhook"
@@ -62,6 +63,9 @@ type ServiceContext struct {
 
 	// Skill（租户自定义工具）
 	SkillRepo skillrepo.Repository
+
+	// Flow（可视化流程定义）
+	FlowRepo flowrepo.Repository
 
 	// Webhook
 	WebhookRepo     webhook.Repository
@@ -163,6 +167,9 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 
 		// Skill
 		SkillRepo: skillrepo.NewSkillRepo(q, db),
+
+		// Flow
+		FlowRepo: flowrepo.NewFlowRepo(q),
 
 		// Webhook
 		WebhookRepo:     wbRepo,

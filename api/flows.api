@@ -1,0 +1,95 @@
+syntax = "v1"
+
+info (
+	title:   "可视化 Flow 接口"
+	desc:    "租户管理员维护可视化流程定义，供后续 Agent 编排执行"
+	author:  "AIPivot"
+	version: "1.0.0"
+)
+
+type (
+	// CreateFlowRequest 创建流程
+	CreateFlowRequest {
+		Name        string `json:"name"`
+		Description string `json:"description,optional"`
+		Definition  string `json:"definition,optional"` // Flow definition JSON 字符串
+		Status      string `json:"status,optional"`     // draft / published / archived
+	}
+
+	// UpdateFlowRequest 更新流程
+	UpdateFlowRequest {
+		ID          int64  `path:"id"`
+		Name        string `json:"name,optional"`
+		Description string `json:"description,optional"`
+		Definition  string `json:"definition,optional"`
+		Status      string `json:"status,optional"` // draft / published / archived
+	}
+
+	// GetFlowRequest 获取流程详情
+	GetFlowRequest {
+		ID int64 `path:"id"`
+	}
+
+	// DeleteFlowRequest 删除流程
+	DeleteFlowRequest {
+		ID int64 `path:"id"`
+	}
+
+	// ShowFlow 流程展示对象
+	ShowFlow {
+		ID          int64  `json:"id"`
+		UUID        string `json:"uuid"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Definition  string `json:"definition"` // Flow definition JSON 字符串
+		Status      string `json:"status"`
+		Version     int    `json:"version"`
+		CreatedAt   int64  `json:"createdAt"`
+		UpdatedAt   int64  `json:"updatedAt"`
+	}
+
+	// FlowResponse 单个流程响应
+	FlowResponse {
+		Code      int32    `json:"code"`
+		Msg       string   `json:"msg"`
+		Timestamp int64    `json:"timestamp"`
+		Data      ShowFlow `json:"data"`
+	}
+
+	// FlowListResponse 流程列表响应
+	FlowListResponse {
+		Code      int32      `json:"code"`
+		Msg       string     `json:"msg"`
+		Timestamp int64      `json:"timestamp"`
+		Data      []ShowFlow `json:"data"`
+	}
+)
+
+// Flow 管理（需要 Admin 鉴权）
+@server (
+	group:      flows
+	prefix:     /api/v1
+	tags:       "可视化 Flow"
+	middleware: AdminMiddleware
+)
+service aipivot-api {
+	@doc "创建 Flow"
+	@handler CreateFlow
+	post /flows (CreateFlowRequest) returns (FlowResponse)
+
+	@doc "获取 Flow 列表"
+	@handler ListFlows
+	get /flows returns (FlowListResponse)
+
+	@doc "获取 Flow 详情"
+	@handler GetFlow
+	get /flows/:id (GetFlowRequest) returns (FlowResponse)
+
+	@doc "更新 Flow"
+	@handler UpdateFlow
+	put /flows/:id (UpdateFlowRequest) returns (FlowResponse)
+
+	@doc "删除 Flow"
+	@handler DeleteFlow
+	delete /flows/:id (DeleteFlowRequest) returns (CommResponse)
+}
