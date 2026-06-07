@@ -119,8 +119,8 @@ function AreaChart({
       preserveAspectRatio="none"
     >
       {/* Grid lines */}
-      {ticks.map((t) => (
-        <g key={t.val}>
+      {ticks.map((t, i) => (
+        <g key={`tick-${i}-${t.val}`}>
           <line
             x1={paddingLeft}
             y1={t.y}

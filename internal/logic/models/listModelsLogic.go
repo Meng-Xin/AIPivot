@@ -30,6 +30,17 @@ func NewListModelsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListMo
 
 func (l *ListModelsLogic) ListModels() (resp *types.ModelListResponse, err error) {
 	cfg := l.svcCtx.Config.LLM
+	healthCtx, cancel := context.WithTimeout(l.ctx, 2*time.Second)
+	defer cancel()
+
+	available := true
+	status := "available"
+	var statusErr string
+	if err := l.svcCtx.LLMClient.HealthCheck(healthCtx); err != nil {
+		available = false
+		status = "unavailable"
+		statusErr = err.Error()
+	}
 
 	chatModels := make([]types.ShowModel, 0, len(cfg.ChatModels))
 	for _, m := range cfg.ChatModels {
@@ -40,6 +51,9 @@ func (l *ListModelsLogic) ListModels() (resp *types.ModelListResponse, err error
 			Provider:  m.Provider,
 			MaxTokens: m.MaxTokens,
 			IsDefault: m.ID == cfg.ChatModel,
+			Available: available,
+			Status:    status,
+			Error:     statusErr,
 		})
 	}
 	// 若配置列表为空，至少返回默认模型
@@ -49,6 +63,9 @@ func (l *ListModelsLogic) ListModels() (resp *types.ModelListResponse, err error
 			Name:      cfg.ChatModel,
 			Type:      "chat",
 			IsDefault: true,
+			Available: available,
+			Status:    status,
+			Error:     statusErr,
 		})
 	}
 
@@ -60,6 +77,9 @@ func (l *ListModelsLogic) ListModels() (resp *types.ModelListResponse, err error
 			Type:      "embedding",
 			Provider:  m.Provider,
 			IsDefault: m.ID == cfg.EmbeddingModel,
+			Available: available,
+			Status:    status,
+			Error:     statusErr,
 		})
 	}
 	if len(embeddingModels) == 0 {
@@ -68,6 +88,9 @@ func (l *ListModelsLogic) ListModels() (resp *types.ModelListResponse, err error
 			Name:      cfg.EmbeddingModel,
 			Type:      "embedding",
 			IsDefault: true,
+			Available: available,
+			Status:    status,
+			Error:     statusErr,
 		})
 	}
 

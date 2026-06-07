@@ -8,26 +8,29 @@ import (
 
 // Writer 封装 SSE（Server-Sent Events）写入，管理 header 设置和事件格式化。
 type Writer struct {
-	w       http.ResponseWriter
-	flusher http.Flusher
+	w     http.ResponseWriter
+	flush func()
 }
 
 // NewWriter 创建 SSE Writer 并设置必要的响应头。
-// 如果 ResponseWriter 不支持 Flush（极少见），返回 error。
+// 如果 ResponseWriter 被中间件包装后不能直接 Flush，则降级为非阻塞写入。
 func NewWriter(w http.ResponseWriter) (*Writer, error) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return nil, fmt.Errorf("response writer does not support streaming")
-	}
-
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no") // 禁用 Nginx 缓冲
 	w.WriteHeader(http.StatusOK)
-	flusher.Flush()
 
-	return &Writer{w: w, flusher: flusher}, nil
+	flush := func() {}
+	controller := http.NewResponseController(w)
+	if err := controller.Flush(); err == nil {
+		flush = func() { _ = controller.Flush() }
+	} else if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+		flush = flusher.Flush
+	}
+
+	return &Writer{w: w, flush: flush}, nil
 }
 
 // WriteEvent 写入一个具名 SSE 事件，data 会被 JSON 序列化。
@@ -41,7 +44,7 @@ func (s *Writer) WriteEvent(event string, data any) error {
 	if _, err := fmt.Fprintf(s.w, "event: %s\ndata: %s\n\n", event, jsonData); err != nil {
 		return fmt.Errorf("write SSE event: %w", err)
 	}
-	s.flusher.Flush()
+	s.flush()
 	return nil
 }
 
@@ -50,7 +53,7 @@ func (s *Writer) WriteDone() error {
 	if _, err := fmt.Fprint(s.w, "event: done\ndata: [DONE]\n\n"); err != nil {
 		return fmt.Errorf("write SSE done: %w", err)
 	}
-	s.flusher.Flush()
+	s.flush()
 	return nil
 }
 

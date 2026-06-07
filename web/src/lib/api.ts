@@ -45,6 +45,9 @@ export interface ShowModel {
   provider?: string;
   maxTokens?: number;
   isDefault: boolean;
+  available: boolean;
+  status: "available" | "unavailable";
+  error?: string;
 }
 
 export interface ModelListData {

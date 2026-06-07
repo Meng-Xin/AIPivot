@@ -21,6 +21,9 @@ func NewConversationRepo(q *query.Query) *ConversationRepo {
 }
 
 func (r *ConversationRepo) Create(ctx context.Context, conv *po.Conversation) error {
+	if conv.Metadata == "" {
+		conv.Metadata = "{}"
+	}
 	return r.q.Conversation.WithContext(ctx).Create(conv)
 }
 

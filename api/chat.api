@@ -160,6 +160,10 @@ service aipivot-api {
 	@handler SendMessage
 	post /conversations/:convId/messages (SendMessageRequest) returns (SendMessageResponse)
 
+	@doc "发送消息（SSE 流式模式）"
+	@handler SendMessageStream
+	post /conversations/:convId/messages/stream (SendMessageRequest)
+
 	@doc "获取消息历史"
 	@handler ListMessage
 	get /conversations/:convId/messages (ListMessageRequest) returns (MessageListResponse)

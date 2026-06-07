@@ -164,6 +164,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: chat.SendMessageHandler(serverCtx),
 				},
 				{
+					// 发送消息（SSE 流式模式）
+					Method:  http.MethodPost,
+					Path:    "/conversations/:convId/messages/stream",
+					Handler: chat.SendMessageStreamHandler(serverCtx),
+				},
+				{
 					// 获取消息历史
 					Method:  http.MethodGet,
 					Path:    "/conversations/:convId/messages",

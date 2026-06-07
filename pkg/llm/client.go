@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,43 @@ func NewClient(baseURL, apiKey string, timeoutSec int) *Client {
 			Timeout: time.Duration(timeoutSec) * time.Second,
 		},
 	}
+}
+
+// HealthCheck checks whether the OpenAI-compatible gateway is reachable.
+func (c *Client) HealthCheck(ctx context.Context) error {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.baseURL, "/")+"/models", nil)
+	if err != nil {
+		return fmt.Errorf("create models request: %w", err)
+	}
+	c.setHeaders(httpReq)
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("models request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return fmt.Errorf("models request failed (status=%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	if err != nil {
+		return fmt.Errorf("read models response: %w", err)
+	}
+	var modelsResp struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &modelsResp); err != nil {
+		return fmt.Errorf("models response is not OpenAI-compatible JSON: %w", err)
+	}
+	if modelsResp.Data == nil {
+		return fmt.Errorf("models response missing data list")
+	}
+	return nil
 }
 
 // ========== Chat Completion ==========

@@ -62,6 +62,9 @@ export default function ChatPage() {
   const [newTitle, setNewTitle] = useState("");
   const [chatModels, setChatModels] = useState<ShowModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -88,6 +91,28 @@ export default function ChatPage() {
     load();
   }, [token, setConversations]);
 
+  useEffect(() => {
+    setModelsLoading(true);
+    setModelsError(null);
+    listModels(token)
+      .then((res) => {
+        if (res.code !== 0) {
+          setModelsError(res.msg || "模型状态获取失败");
+          return;
+        }
+        setChatModels(res.data.chatModels);
+        const preferred =
+          res.data.chatModels.find((m) => m.isDefault && m.available) ??
+          res.data.chatModels.find((m) => m.available) ??
+          res.data.chatModels.find((m) => m.isDefault);
+        setSelectedModel((current) => current || preferred?.id || "");
+      })
+      .catch((err) => {
+        setModelsError((err as Error).message || "模型状态获取失败");
+      })
+      .finally(() => setModelsLoading(false));
+  }, [token]);
+
   // 切换会话时加载消息
   useEffect(() => {
     if (!activeConvId) {
@@ -106,13 +131,51 @@ export default function ChatPage() {
     load();
   }, [activeConvId, token, setMessages]);
 
+  const activeConversation = conversations.find((c) => c.id === activeConvId);
+  const defaultModel = chatModels.find((m) => m.isDefault);
+  const preferredNewChatModel =
+    chatModels.find((m) => m.isDefault && m.available) ??
+    chatModels.find((m) => m.available) ??
+    defaultModel;
+  const activeModelId = activeConversation?.model || defaultModel?.id || "";
+  const activeModel = chatModels.find((m) => m.id === activeModelId);
+  const modelsReady = !modelsLoading && !modelsError;
+  const activeModelMissing = Boolean(
+    activeConversation && modelsReady && !activeModel
+  );
+  const modelUnavailable = Boolean(
+    activeConversation &&
+      (!modelsReady || activeModelMissing || (activeModel && !activeModel.available))
+  );
+  const modelStatusNotice = activeConversation
+    ? modelsLoading
+      ? "正在检查当前模型状态，请稍候"
+      : modelsError
+        ? `模型状态获取失败：${modelsError}`
+        : activeModelMissing
+          ? `当前会话模型 ${activeModelId || "未配置"} 不在可用模型列表中，暂时无法发送`
+          : activeModel && !activeModel.available
+            ? `当前模型 ${activeModel.name} 不可用，请检查 LLM 网关后再继续对话`
+            : null
+    : null;
+  const inputNotice = modelStatusNotice ?? sendError;
+  const selectedNewChatModel =
+    chatModels.find((m) => m.id === selectedModel) ?? preferredNewChatModel;
+  const createConversationBlocked =
+    modelsLoading ||
+    Boolean(modelsError) ||
+    !selectedNewChatModel ||
+    !selectedNewChatModel.available;
+
   // 创建新会话
   const handleCreateConversation = async () => {
+    if (createConversationBlocked) return;
+
     try {
       const res = await createConversation(token, {
         knowledgeBaseId: selectedKbId,
         title: newTitle || undefined,
-        model: selectedModel || undefined,
+        model: selectedNewChatModel.id,
       });
       if (res.code === 0) {
         setConversations([res.data, ...conversations]);
@@ -120,7 +183,7 @@ export default function ChatPage() {
         setShowNewChat(false);
         setNewTitle("");
         setSelectedKbId(undefined);
-        setSelectedModel("");
+        setSelectedModel(preferredNewChatModel?.id || "");
       }
     } catch (err) {
       console.error("创建会话失败:", err);
@@ -133,21 +196,30 @@ export default function ChatPage() {
     listKnowledgeBases(token).then((res) => {
       if (res.code === 0) setKnowledgeBases(res.data.list);
     });
-    listModels(token).then((res) => {
-      if (res.code === 0) {
-        setChatModels(res.data.chatModels);
-        // 自动选中默认模型
-        const def = res.data.chatModels.find((m) => m.isDefault);
-        if (def && !selectedModel) setSelectedModel(def.id);
-      }
-    });
   }, [showNewChat, token]);
+
+  const refreshConversationState = useCallback(
+    async (convId: number) => {
+      const [msgRes, convRes] = await Promise.all([
+        listMessages(token, convId),
+        listConversations(token),
+      ]);
+      if (msgRes.code === 0) setMessages(msgRes.data.list);
+      if (convRes.code === 0) setConversations(convRes.data.list);
+    },
+    [token, setMessages, setConversations]
+  );
 
   // 发送消息（SSE 流式）
   const handleSend = async () => {
     const content = input.trim();
     if (!content || !activeConvId || isStreaming) return;
+    if (modelUnavailable) {
+      setSendError(modelStatusNotice || "当前模型不可用，请检查 LLM 网关后再继续对话");
+      return;
+    }
 
+    setSendError(null);
     setInput("");
 
     // 立即展示用户消息
@@ -176,10 +248,13 @@ export default function ChatPage() {
             onStreamEnd(data);
             commitStreamMessage(data);
             incrementMessageCount(activeConvId);
+            setSendError(null);
           },
           onError: (data) => {
             console.error("SSE error:", data);
+            setSendError(data.msg || "会话异常，AI 服务暂时不可用");
             onStreamReset();
+            void refreshConversationState(activeConvId);
           },
         },
         abortRef.current.signal
@@ -187,6 +262,8 @@ export default function ChatPage() {
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
         console.error("Stream failed:", err);
+        setSendError("会话异常，AI 服务暂时不可用");
+        void refreshConversationState(activeConvId);
       }
       onStreamReset();
     }
@@ -306,7 +383,10 @@ export default function ChatPage() {
           <>
             {/* 头部 */}
             <ChatHeader
-              conv={conversations.find((c) => c.id === activeConvId)}
+              conv={activeConversation}
+              model={activeModel}
+              modelsLoading={modelsLoading}
+              modelsError={modelsError}
             />
 
             {/* 消息列表 */}
@@ -340,38 +420,45 @@ export default function ChatPage() {
 
             {/* 输入框 */}
             <div className="border-t border-slate-200 bg-white px-4 py-3">
-              <div className="mx-auto flex max-w-3xl items-end gap-3">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
-                  rows={1}
-                  disabled={isStreaming}
-                  className="max-h-32 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
-                  style={{
-                    height: "auto",
-                    minHeight: "40px",
-                    overflow: "hidden",
-                  }}
-                  onInput={(e) => {
-                    const t = e.target as HTMLTextAreaElement;
-                    t.style.height = "auto";
-                    t.style.height = Math.min(t.scrollHeight, 128) + "px";
-                  }}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isStreaming}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600"
-                >
-                  {isStreaming ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
+              <div className="mx-auto max-w-3xl">
+                {inputNotice && (
+                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    {inputNotice}
+                  </div>
+                )}
+                <div className="flex items-end gap-3">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
+                    rows={1}
+                    disabled={isStreaming || modelUnavailable}
+                    className="max-h-32 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
+                    style={{
+                      height: "auto",
+                      minHeight: "40px",
+                      overflow: "hidden",
+                    }}
+                    onInput={(e) => {
+                      const t = e.target as HTMLTextAreaElement;
+                      t.style.height = "auto";
+                      t.style.height = Math.min(t.scrollHeight, 128) + "px";
+                    }}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || isStreaming || modelUnavailable}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600"
+                  >
+                    {isStreaming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </>
@@ -389,6 +476,9 @@ export default function ChatPage() {
           chatModels={chatModels}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
+          modelsLoading={modelsLoading}
+          modelsError={modelsError}
+          createDisabled={createConversationBlocked}
           onClose={() => setShowNewChat(false)}
           onCreate={handleCreateConversation}
         />
@@ -445,8 +535,31 @@ function ConversationItem({
   );
 }
 
-function ChatHeader({ conv }: { conv?: ShowConversation }) {
+function ChatHeader({
+  conv,
+  model,
+  modelsLoading,
+  modelsError,
+}: {
+  conv?: ShowConversation;
+  model?: ShowModel;
+  modelsLoading: boolean;
+  modelsError: string | null;
+}) {
   if (!conv) return null;
+  const modelAvailable = model?.available ?? true;
+  const modelLabel = modelsLoading
+    ? "模型检测中"
+    : modelsError
+      ? "模型状态异常"
+      : model
+        ? `${model.name} ${modelAvailable ? "可用" : "不可用"}`
+        : "模型未配置";
+  const modelClass =
+    !modelsLoading && !modelsError && modelAvailable
+      ? "text-green-500"
+      : "text-amber-600";
+
   return (
     <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
       <div>
@@ -470,6 +583,8 @@ function ChatHeader({ conv }: { conv?: ShowConversation }) {
           >
             {conv.status}
           </span>
+          <span>·</span>
+          <span className={modelClass}>{modelLabel}</span>
         </div>
       </div>
     </div>
@@ -602,6 +717,9 @@ function NewChatModal({
   chatModels,
   selectedModel,
   setSelectedModel,
+  modelsLoading,
+  modelsError,
+  createDisabled,
   onClose,
   onCreate,
 }: {
@@ -613,9 +731,14 @@ function NewChatModal({
   chatModels: ShowModel[];
   selectedModel: string;
   setSelectedModel: (v: string) => void;
+  modelsLoading: boolean;
+  modelsError: string | null;
+  createDisabled: boolean;
   onClose: () => void;
   onCreate: () => void;
 }) {
+  const selectedModelInfo = chatModels.find((m) => m.id === selectedModel);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
@@ -651,18 +774,29 @@ function NewChatModal({
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 pr-9 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                disabled={modelsLoading || Boolean(modelsError)}
+                className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 pr-9 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-50 disabled:text-slate-400"
               >
                 {chatModels.map((m) => (
-                  <option key={m.id} value={m.id}>
+                  <option key={m.id} value={m.id} disabled={!m.available}>
                     {m.name}
                     {m.provider ? ` (${m.provider})` : ""}
                     {m.isDefault ? " ✦ 默认" : ""}
+                    {m.available ? " · 可用" : " · 不可用"}
                   </option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
+            {(modelsLoading || modelsError || selectedModelInfo?.available === false) && (
+              <p className="mt-1.5 text-xs text-amber-600">
+                {modelsLoading
+                  ? "正在检查模型状态"
+                  : modelsError
+                    ? `模型状态获取失败：${modelsError}`
+                    : "所选模型不可用，请检查 LLM 网关"}
+              </p>
+            )}
           </div>
 
           <div>
@@ -700,7 +834,8 @@ function NewChatModal({
           </button>
           <button
             onClick={onCreate}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            disabled={createDisabled}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600"
           >
             <Plus className="h-4 w-4" />
             创建

@@ -92,22 +92,15 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		return
 	}
 
-	// 保存用户消息
-	userMsg := &po.Message{
-		UUID:           uuid.New().String(),
-		ConversationID: req.ConversationID,
-		TenantID:       tenantID,
-		Role:           "user",
-		Content:        req.Content,
-		ContentType:    req.ContentType,
-	}
-	if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
-		l.Logger.Errorf("SendMessageStream CreateUserMsg err: %v", err)
-		sseWriter.WriteError(errorx.CodeFailed, "发送消息失败")
+	healthCtx, cancel := context.WithTimeout(l.ctx, 2*time.Second)
+	defer cancel()
+	if err := l.svcCtx.LLMClient.HealthCheck(healthCtx); err != nil {
+		l.Logger.Errorf("SendMessageStream LLM healthcheck err: %v", err)
+		sseWriter.WriteError(errorx.CodeLLMUnavailable, "LLM 网关不可用，请检查服务后再继续对话")
 		return
 	}
 
-	// 获取最近对话历史（util.go 中定义的共享函数）
+	// 获取最近对话历史（util.go 中定义的共享函数）。当前用户消息由 RAG prompt 的 question 注入，避免重复进入 history。
 	recentMsgs, _ := l.svcCtx.MessageRepo.GetRecentMessages(l.ctx, req.ConversationID, 10)
 	history := buildChatHistory(recentMsgs)
 
@@ -133,6 +126,22 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		sseWriter.WriteError(errorx.CodeLLMUnavailable, "AI 回复生成失败，请稍后重试")
 		return
 	}
+
+	// 保存用户消息。LLM 不可用时不落库本次用户消息，避免前端误判已受理。
+	userMsg := &po.Message{
+		UUID:           uuid.New().String(),
+		ConversationID: req.ConversationID,
+		TenantID:       tenantID,
+		Role:           "user",
+		Content:        req.Content,
+		ContentType:    req.ContentType,
+	}
+	if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
+		l.Logger.Errorf("SendMessageStream CreateUserMsg err: %v", err)
+		sseWriter.WriteError(errorx.CodeFailed, "发送消息失败")
+		return
+	}
+	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 
 	// 发送 message_start 事件
 	aiMsgUUID := uuid.New().String()
@@ -206,8 +215,7 @@ func (l *SendMessageStreamLogic) SendMessageStream(w http.ResponseWriter, req *t
 		l.Logger.Errorf("SendMessageStream CreateAIMsg err: %v", err)
 	}
 
-	// 更新会话消息计数（+2: 用户消息 + AI 回复）
-	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+	// 更新会话消息计数（AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 
 	// 记录当日已用 token（fire-and-forget）

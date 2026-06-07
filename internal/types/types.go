@@ -539,6 +539,9 @@ type ShowModel struct {
 	Provider  string `json:"provider,omitempty"`  // 供应商
 	MaxTokens int    `json:"maxTokens,omitempty"` // 最大 context 窗口
 	IsDefault bool   `json:"isDefault"`           // 是否为默认模型
+	Available bool   `json:"available"`           // 当前网关是否可用
+	Status    string `json:"status"`              // available / unavailable
+	Error     string `json:"error,omitempty"`      // 不可用原因
 }
 
 type ShowSkill struct {

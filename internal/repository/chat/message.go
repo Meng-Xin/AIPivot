@@ -17,6 +17,12 @@ func NewMessageRepo(q *query.Query) *MessageRepo {
 }
 
 func (r *MessageRepo) Create(ctx context.Context, msg *po.Message) error {
+	if msg.Sources == "" {
+		msg.Sources = "[]"
+	}
+	if msg.Metadata == "" {
+		msg.Metadata = "{}"
+	}
 	return r.q.Message.WithContext(ctx).Create(msg)
 }
 

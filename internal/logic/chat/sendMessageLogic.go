@@ -75,25 +75,18 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		}, nil
 	}
 
-	// 2. 保存用户消息
-	userMsg := &po.Message{
-		UUID:           uuid.New().String(),
-		ConversationID: req.ConversationID,
-		TenantID:       tenantID,
-		Role:           "user",
-		Content:        req.Content,
-		ContentType:    req.ContentType,
-	}
-	if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
-		l.Logger.Errorf("SendMessage CreateUserMsg err: %v", err)
-		return nil, errorx.NewInternalError("发送消息失败")
+	healthCtx, cancel := context.WithTimeout(l.ctx, 2*time.Second)
+	defer cancel()
+	if err := l.svcCtx.LLMClient.HealthCheck(healthCtx); err != nil {
+		l.Logger.Errorf("SendMessage LLM healthcheck err: %v", err)
+		return nil, errorx.NewBusinessError(errorx.CodeLLMUnavailable, "LLM 网关不可用，请检查服务后再继续对话")
 	}
 
-	// 3. 获取最近对话历史，构建 LLM context
+	// 2. 获取最近对话历史，构建 LLM context。当前用户消息由 RAG prompt 的 question 注入，避免重复进入 history。
 	recentMsgs, _ := l.svcCtx.MessageRepo.GetRecentMessages(l.ctx, req.ConversationID, 10)
 	history := buildChatHistory(recentMsgs)
 
-	// 4. 调用 RAG 服务生成 AI 回复
+	// 3. 调用 RAG 服务生成 AI 回复。LLM 不可用时不落库本次用户消息，避免前端误判已受理。
 	startTime := time.Now()
 	var kbID int64
 	if conv.KnowledgeBaseID != nil {
@@ -115,6 +108,21 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 	}
 	latencyMs := int(time.Since(startTime).Milliseconds())
 
+	// 4. 保存用户消息
+	userMsg := &po.Message{
+		UUID:           uuid.New().String(),
+		ConversationID: req.ConversationID,
+		TenantID:       tenantID,
+		Role:           "user",
+		Content:        req.Content,
+		ContentType:    req.ContentType,
+	}
+	if err = l.svcCtx.MessageRepo.Create(l.ctx, userMsg); err != nil {
+		l.Logger.Errorf("SendMessage CreateUserMsg err: %v", err)
+		return nil, errorx.NewInternalError("发送消息失败")
+	}
+	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+
 	// 5. 保存 AI 回复消息
 	sourcesJSON, _ := json.Marshal(result.Sources)
 	aiMsg := &po.Message{
@@ -134,8 +142,7 @@ func (l *SendMessageLogic) SendMessage(req *types.SendMessageRequest) (resp *typ
 		return nil, errorx.NewInternalError("发送消息失败")
 	}
 
-	// 6. 更新会话消息计数（+2: 用户消息 + AI 回复）
-	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
+	// 6. 更新会话消息计数（AI 回复）
 	_ = l.svcCtx.ConversationRepo.IncrMessageCount(l.ctx, req.ConversationID)
 
 	// 记录当日已用 token（fire-and-forget）
