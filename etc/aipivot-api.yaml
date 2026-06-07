@@ -46,31 +46,27 @@ Migration:
   Path: migrations
 
 LLM:
-  BaseURL: "http://127.0.0.1:3000/v1"
-  APIKey: "sk-your-api-key"
-  ChatModel: "gpt-3.5-turbo"
+  Provider: "ark"
+  BaseURL: "https://ark.cn-beijing.volces.com/api/v3"
+  APIKeyEnv: "ARK_API_KEY"
+  ChatModel: "deepseek-v4-pro-260425"
   EmbeddingModel: "text-embedding-3-small"
   EmbeddingDim: 1536
   MaxTokens: 2048
   Temperature: 0.7
   TimeoutSeconds: 60
+  UseResponsesAPI: true
+  EnableWebSearch: true
+  WebSearchMaxKeyword: 3
   ChatModels:
-    - ID: "gpt-3.5-turbo"
-      Name: "GPT-3.5 Turbo"
-      Provider: "openai"
-      MaxTokens: 16385
-    - ID: "gpt-4o"
-      Name: "GPT-4o"
-      Provider: "openai"
-      MaxTokens: 128000
-    - ID: "gpt-4o-mini"
-      Name: "GPT-4o Mini"
-      Provider: "openai"
-      MaxTokens: 128000
-    - ID: "deepseek-chat"
-      Name: "DeepSeek Chat"
-      Provider: "deepseek"
-      MaxTokens: 65536
+    - ID: "deepseek-v4-pro-260425"
+      Name: "DeepSeek V4 Pro (Doubao Ark)"
+      Provider: "ark"
+      MaxTokens: 1048576
+    - ID: "deepseek-v4-flash-260425"
+      Name: "DeepSeek V4 Flash (Doubao Ark)"
+      Provider: "ark"
+      MaxTokens: 1048576
   EmbeddingModels:
     - ID: "text-embedding-3-small"
       Name: "Embedding 3 Small (1536d)"
@@ -84,20 +80,16 @@ Worker:
   Concurrency: 5
 
 Agent:
-  Enabled: true
+  Enabled: false
   MaxRounds: 5
-  MultiAgentEnabled: true
+  MultiAgentEnabled: false
   MaxWorkers: 3
 
 # 模型计费配置（混合口径，美元/1K tokens）
 ModelPricing:
-  - Model: "gpt-3.5-turbo"
-    PerK: 0.002
-  - Model: "gpt-4o"
-    PerK: 0.005
-  - Model: "gpt-4o-mini"
-    PerK: 0.00015
-  - Model: "deepseek-chat"
+  - Model: "deepseek-v4-pro-260425"
+    PerK: 0.001
+  - Model: "deepseek-v4-flash-260425"
     PerK: 0.001
 
 # 每租户 Token 日配额限流（0 = 不限制）

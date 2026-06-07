@@ -47,6 +47,10 @@ type StreamEvent struct {
 // ChatCompletionStream 流式调用 LLM，通过 channel 逐步返回增量 token。
 // 调用方应持续读取 channel 直到关闭或收到 Done=true 的事件。
 func (c *Client) ChatCompletionStream(ctx context.Context, req *ChatRequest) (<-chan StreamEvent, error) {
+	if c.useResponsesAPI {
+		return c.ResponsesCompletionStream(ctx, req)
+	}
+
 	req.Stream = true
 	body, err := json.Marshal(req)
 	if err != nil {

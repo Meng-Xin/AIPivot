@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"aipivot/internal/config"
 	"aipivot/internal/infra"
@@ -107,8 +108,22 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	// Webhook Repo
 	wbRepo := webhookrepo.NewWebhookRepo(q, db)
 
-	// LLM Client (OpenAI-compatible, 支持 One API)
-	llmClient := llm.NewClient(c.LLM.BaseURL, c.LLM.APIKey, c.LLM.TimeoutSeconds)
+	// LLM Client (OpenAI-compatible, 支持 Ark Responses)
+	llmAPIKey := c.LLM.APIKey
+	if c.LLM.APIKeyEnv != "" {
+		if value := os.Getenv(c.LLM.APIKeyEnv); value != "" {
+			llmAPIKey = value
+		}
+	}
+	llmClient := llm.NewClient(
+		c.LLM.BaseURL,
+		llmAPIKey,
+		c.LLM.TimeoutSeconds,
+		llm.WithProvider(c.LLM.Provider),
+		llm.WithHealthModel(c.LLM.ChatModel),
+		llm.WithResponsesAPI(c.LLM.UseResponsesAPI),
+		llm.WithWebSearch(c.LLM.EnableWebSearch, c.LLM.WebSearchMaxKeyword),
+	)
 
 	// Knowledge Repos
 	chunkRepo := knowledgerepo.NewDocChunkRepo(q, db)

@@ -13,24 +13,68 @@ import (
 
 // Client 是 OpenAI-compatible API 客户端，兼容 One API / OpenAI / Azure OpenAI。
 type Client struct {
-	baseURL    string
-	apiKey     string
-	httpClient *http.Client
+	baseURL             string
+	apiKey              string
+	provider            string
+	healthModel         string
+	useResponsesAPI     bool
+	enableWebSearch     bool
+	webSearchMaxKeyword int
+	httpClient          *http.Client
 }
 
-func NewClient(baseURL, apiKey string, timeoutSec int) *Client {
-	return &Client{
-		baseURL: baseURL,
-		apiKey:  apiKey,
+type ClientOption func(*Client)
+
+func WithProvider(provider string) ClientOption {
+	return func(c *Client) {
+		c.provider = provider
+	}
+}
+
+func WithHealthModel(model string) ClientOption {
+	return func(c *Client) {
+		c.healthModel = model
+	}
+}
+
+func WithResponsesAPI(enabled bool) ClientOption {
+	return func(c *Client) {
+		c.useResponsesAPI = enabled
+	}
+}
+
+func WithWebSearch(enabled bool, maxKeyword int) ClientOption {
+	return func(c *Client) {
+		c.enableWebSearch = enabled
+		if maxKeyword > 0 {
+			c.webSearchMaxKeyword = maxKeyword
+		}
+	}
+}
+
+func NewClient(baseURL, apiKey string, timeoutSec int, opts ...ClientOption) *Client {
+	c := &Client{
+		baseURL:             strings.TrimRight(baseURL, "/"),
+		apiKey:              apiKey,
+		provider:            "openai",
+		webSearchMaxKeyword: 3,
 		httpClient: &http.Client{
 			Timeout: time.Duration(timeoutSec) * time.Second,
 		},
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // HealthCheck checks whether the OpenAI-compatible gateway is reachable.
 func (c *Client) HealthCheck(ctx context.Context) error {
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.baseURL, "/")+"/models", nil)
+	if c.apiKey == "" {
+		return fmt.Errorf("llm api key is empty")
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/models", nil)
 	if err != nil {
 		return fmt.Errorf("create models request: %w", err)
 	}
@@ -47,7 +91,7 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("models request failed (status=%d): %s", resp.StatusCode, string(respBody))
 	}
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 	if err != nil {
 		return fmt.Errorf("read models response: %w", err)
 	}
@@ -61,6 +105,40 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 	}
 	if modelsResp.Data == nil {
 		return fmt.Errorf("models response missing data list")
+	}
+	return nil
+}
+
+func (c *Client) healthCheckChatCompletions(ctx context.Context) error {
+	model := c.healthModel
+	if model == "" {
+		return fmt.Errorf("llm health model is empty")
+	}
+	body, err := json.Marshal(&ChatRequest{
+		Model:       model,
+		Messages:    []ChatMessage{{Role: "user", Content: "ping"}},
+		MaxTokens:   1,
+		Temperature: 0,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal chat health request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create chat health request: %w", err)
+	}
+	c.setHeaders(httpReq)
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("chat health request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return fmt.Errorf("chat health failed (status=%d): %s", resp.StatusCode, string(respBody))
 	}
 	return nil
 }
@@ -134,6 +212,10 @@ type ChatResponse struct {
 
 // ChatCompletion 同步调用 LLM，返回完整回复。
 func (c *Client) ChatCompletion(ctx context.Context, req *ChatRequest) (*ChatResponse, error) {
+	if c.useResponsesAPI {
+		return c.ResponsesCompletion(ctx, req)
+	}
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal chat request: %w", err)

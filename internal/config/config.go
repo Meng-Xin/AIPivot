@@ -59,16 +59,21 @@ type MetricsConf struct {
 	Path    string `json:",default=/metrics"`
 }
 
-// LLMConf OpenAI-compatible API 配置（兼容 One API / OpenAI / Azure）
+// LLMConf LLM API 配置（兼容 OpenAI Chat Completions，也支持 Ark Responses）。
 type LLMConf struct {
-	BaseURL        string  `json:",default=http://127.0.0.1:3000/v1"` // One API 或 OpenAI endpoint
-	APIKey         string  `json:",optional"`
-	ChatModel      string  `json:",default=gpt-3.5-turbo"`
-	EmbeddingModel string  `json:",default=text-embedding-3-small"`
-	EmbeddingDim   int     `json:",default=1536"`
-	MaxTokens      int     `json:",default=2048"`
-	Temperature    float64 `json:",default=0.7"`
-	TimeoutSeconds int     `json:",default=60"`
+	BaseURL             string  `json:",default=http://127.0.0.1:3000/v1"` // One API 或 OpenAI endpoint
+	Provider            string  `json:",default=openai"`                   // openai / ark
+	APIKey              string  `json:",optional"`
+	APIKeyEnv           string  `json:",optional"` // 从环境变量读取 API Key，优先级高于 APIKey
+	ChatModel           string  `json:",default=gpt-3.5-turbo"`
+	EmbeddingModel      string  `json:",default=text-embedding-3-small"`
+	EmbeddingDim        int     `json:",default=1536"`
+	MaxTokens           int     `json:",default=2048"`
+	Temperature         float64 `json:",default=0.7"`
+	TimeoutSeconds      int     `json:",default=60"`
+	UseResponsesAPI     bool    `json:",default=false"` // 使用 /responses 代替 /chat/completions
+	EnableWebSearch     bool    `json:",default=false"` // Ark Responses 内置 web_search
+	WebSearchMaxKeyword int     `json:",default=3"`
 
 	// 多模型路由：声明可用模型列表，供前端选择和后端路由
 	ChatModels      []ModelOption `json:",optional"`
