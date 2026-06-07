@@ -267,9 +267,9 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [ ] LLM 成本追踪与限流
 
 ### Phase 3 — 平台化（8+ 周）
-- [ ] 可视化 Flow 编辑器
-- [ ] 多 Agent 协作
-- [ ] 客户自助 Skill 注册
+- [x] 可视化 Flow 编辑器
+- [x] 多 Agent 协作
+- [x] 客户自助 Skill 注册
 - [ ] 从 pgvector 迁移到 Milvus（如有需要）
 
 ---
@@ -840,6 +840,28 @@ active ────────────────────────�
 - `npm.cmd run build` ✅
 
 **下一步优先级：**
-1. P3: 多 Agent 协作（Orchestrator-Worker）
+1. ~~P3: 多 Agent 协作（Orchestrator-Worker）~~ ✅
 
-*文档版本：v2.4 | 更新日期：2026-06-07*
+---
+
+### 2026-06-07 P3 — 多 Agent 协作（Orchestrator-Worker）
+
+**完成内容：**
+
+1. **Orchestrator-Worker 编排器** — 新增 `internal/modules/agent/orchestrator.go`：由 planner 生成任务 JSON，多个 worker agent 并发执行，最后由 synthesizer 汇总成面向用户的一次回复。
+2. **复用现有 ReAct Agent** — worker 继续走 `Agent.Run`，保留 Function Calling、租户自定义 HTTP Skill、转人工工具与工具调用审计记录，不引入新的跨层访问。
+3. **RAG 同步链路接入** — `internal/modules/rag/service.go` 在启用多 Agent 且存在工具能力时优先走 Orchestrator；工具调用与 worker 来源继续写入 `sources`。
+4. **RAG 流式链路接入** — `internal/modules/rag/stream.go` 在多 Agent 模式下先完成编排，再包装为 SSE stream 输出，保持前端协议不变。
+5. **配置开关** — `Agent.MultiAgentEnabled` 与 `Agent.MaxWorkers` 支持按环境启停和限制 worker 数量；本地配置默认启用 3 个 worker。
+6. **单元测试** — `internal/modules/agent/orchestrator_test.go` 覆盖多 worker 编排、结果汇总、usage 聚合和单任务回退。
+
+**验证：**
+
+- `go test ./...` ✅
+- `go build ./...` ✅
+
+**下一步优先级：**
+1. P3: Flow 执行运行时（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点）
+2. P3: 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
+
+*文档版本：v2.5 | 更新日期：2026-06-07*

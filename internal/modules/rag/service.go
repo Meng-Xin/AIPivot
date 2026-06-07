@@ -14,9 +14,10 @@ import (
 
 // Service 是 RAG 编排服务：检索相关切块 → 组装 prompt → 调用 Agent/LLM 生成回复。
 type Service struct {
-	llmClient *llm.Client
-	chunkRepo knowledge.DocChunkRepository
-	agent     *agent.Agent // Function Calling Agent，nil 时退化为直连 LLM
+	llmClient    *llm.Client
+	chunkRepo    knowledge.DocChunkRepository
+	agent        *agent.Agent        // Function Calling Agent，nil 时退化为直连 LLM
+	orchestrator *agent.Orchestrator // Orchestrator-Worker multi-agent coordinator
 
 	// LLM 配置
 	chatModel      string
@@ -33,11 +34,12 @@ type Config struct {
 	Temperature    float64
 }
 
-func NewService(llmClient *llm.Client, chunkRepo knowledge.DocChunkRepository, ag *agent.Agent, cfg Config) *Service {
+func NewService(llmClient *llm.Client, chunkRepo knowledge.DocChunkRepository, ag *agent.Agent, orchestrator *agent.Orchestrator, cfg Config) *Service {
 	return &Service{
 		llmClient:      llmClient,
 		chunkRepo:      chunkRepo,
 		agent:          ag,
+		orchestrator:   orchestrator,
 		chatModel:      cfg.ChatModel,
 		embeddingModel: cfg.EmbeddingModel,
 		maxTokens:      cfg.MaxTokens,
@@ -79,10 +81,31 @@ func (s *Service) Answer(ctx context.Context, kbID int64, question string, histo
 	var content, usedModel string
 	var tokenCount int
 	var toolUses []agent.ToolUseRecord
+	var workerSources []string
 
 	// 有全局工具或租户自定义 Skill 时走 Agent 路径
 	hasTools := (s.agent != nil && s.agent.HasTools()) || len(extraTools) > 0
-	if s.agent != nil && hasTools {
+	if s.orchestrator != nil && hasTools {
+		result, err := s.orchestrator.Run(ctx, &agent.RunRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+			ExtraTools:  extraTools,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("orchestrator run: %w", err)
+		}
+		content = result.Content
+		usedModel = result.Model
+		if result.Usage != nil {
+			tokenCount = result.Usage.TotalTokens
+		}
+		toolUses = result.ToolUses
+		for _, worker := range result.WorkerResults {
+			workerSources = append(workerSources, fmt.Sprintf("agent:%s", worker.Role))
+		}
+	} else if s.agent != nil && hasTools {
 		// Agent 模式：ReAct 循环可能调用工具后再生成回复
 		result, err := s.agent.Run(ctx, &agent.RunRequest{
 			Model:       chatModel,
@@ -124,6 +147,7 @@ func (s *Service) Answer(ctx context.Context, kbID int64, question string, histo
 	for _, c := range contexts {
 		sources = append(sources, fmt.Sprintf("chunk_%d(score=%.2f)", c.ChunkIndex, c.Score))
 	}
+	sources = append(sources, workerSources...)
 	// 追加工具调用记录到来源
 	if len(toolUses) > 0 {
 		for _, tu := range toolUses {

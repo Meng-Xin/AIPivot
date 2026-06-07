@@ -40,9 +40,26 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 	chatModel := s.chatModelOrDefault(model)
 	var stream <-chan llm.StreamEvent
 	var toolUses []agent.ToolUseRecord
+	var workerSources []string
 
 	hasTools := (s.agent != nil && s.agent.HasTools()) || len(extraTools) > 0
-	if s.agent != nil && hasTools {
+	if s.orchestrator != nil && hasTools {
+		result, orchestratorErr := s.orchestrator.Run(ctx, &agent.RunRequest{
+			Model:       chatModel,
+			Messages:    messages,
+			MaxTokens:   s.maxTokens,
+			Temperature: s.temperature,
+			ExtraTools:  extraTools,
+		})
+		if orchestratorErr != nil {
+			return nil, nil, fmt.Errorf("orchestrator stream: %w", orchestratorErr)
+		}
+		toolUses = result.ToolUses
+		for _, worker := range result.WorkerResults {
+			workerSources = append(workerSources, fmt.Sprintf("agent:%s", worker.Role))
+		}
+		stream = streamFromRunResult(result)
+	} else if s.agent != nil && hasTools {
 		var agentMeta *agent.StreamMeta
 		var agentErr error
 		stream, agentMeta, agentErr = s.agent.RunStream(ctx, &agent.RunRequest{
@@ -75,9 +92,27 @@ func (s *Service) AnswerStream(ctx context.Context, kbID int64, question string,
 	for _, c := range contexts {
 		sources = append(sources, fmt.Sprintf("chunk_%d(score=%.2f)", c.ChunkIndex, c.Score))
 	}
+	sources = append(sources, workerSources...)
 	for _, tu := range toolUses {
 		sources = append(sources, fmt.Sprintf("tool:%s", tu.Name))
 	}
 
 	return stream, &StreamMeta{Sources: sources, ToolUses: toolUses}, nil
+}
+
+func streamFromRunResult(result *agent.RunResult) <-chan llm.StreamEvent {
+	ch := make(chan llm.StreamEvent, 2)
+	go func() {
+		defer close(ch)
+		ch <- llm.StreamEvent{
+			Content: result.Content,
+			Model:   result.Model,
+		}
+		ch <- llm.StreamEvent{
+			Done:  true,
+			Model: result.Model,
+			Usage: result.Usage,
+		}
+	}()
+	return ch
 }

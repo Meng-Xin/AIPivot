@@ -86,6 +86,8 @@ Worker:
 Agent:
   Enabled: true
   MaxRounds: 5
+  MultiAgentEnabled: true
+  MaxWorkers: 3
 
 # 模型计费配置（混合口径，美元/1K tokens）
 ModelPricing:

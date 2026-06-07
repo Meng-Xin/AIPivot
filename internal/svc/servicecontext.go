@@ -115,6 +115,7 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 
 	// Agent (Function Calling)
 	var ag *agent.Agent
+	var orchestrator *agent.Orchestrator
 	if c.Agent.Enabled {
 		registry := agent.NewRegistry()
 		registry.Register(tools.NewWeatherTool())
@@ -122,10 +123,13 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		registry.Register(tools.NewCalculatorTool())
 		registry.Register(tools.NewEscalationTool())
 		ag = agent.NewAgent(llmClient, registry, c.Agent.MaxRounds)
+		if c.Agent.MultiAgentEnabled {
+			orchestrator = agent.NewOrchestrator(llmClient, ag, c.Agent.MaxWorkers)
+		}
 	}
 
 	// RAG Service（注入 Agent，nil 时退化为纯 LLM）
-	ragService := rag.NewService(llmClient, chunkRepo, ag, rag.Config{
+	ragService := rag.NewService(llmClient, chunkRepo, ag, orchestrator, rag.Config{
 		ChatModel:      c.LLM.ChatModel,
 		EmbeddingModel: c.LLM.EmbeddingModel,
 		MaxTokens:      c.LLM.MaxTokens,

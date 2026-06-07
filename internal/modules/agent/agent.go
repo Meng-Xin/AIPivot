@@ -31,11 +31,12 @@ type RunRequest struct {
 
 // RunResult Agent 执行的最终结果。
 type RunResult struct {
-	Content    string          // 最终文本回复
-	Model      string          // 使用的模型
-	Usage      *llm.ChatUsage  // token 统计（仅最后一轮可用）
-	ToolUses   []ToolUseRecord // 本次调用中使用的所有工具记录
-	TotalRound int             // 实际执行轮数
+	Content       string          // 最终文本回复
+	Model         string          // 使用的模型
+	Usage         *llm.ChatUsage  // token 统计（仅最后一轮可用）
+	ToolUses      []ToolUseRecord // 本次调用中使用的所有工具记录
+	WorkerResults []WorkerResult  // multi-agent worker outputs when orchestrator mode is used
+	TotalRound    int             // 实际执行轮数
 }
 
 // StreamMeta Agent 流式执行的同步可用元数据。

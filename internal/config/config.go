@@ -101,6 +101,8 @@ type RateLimitConf struct {
 
 // AgentConf Function Calling Agent 配置
 type AgentConf struct {
-	Enabled   bool `json:",default=true"` // 是否启用 Agent（false 时退化为纯 LLM）
-	MaxRounds int  `json:",default=5"`    // ReAct 循环最大轮数，防止无限工具调用
+	Enabled           bool `json:",default=true"`  // 是否启用 Agent（false 时退化为纯 LLM）
+	MaxRounds         int  `json:",default=5"`     // ReAct 循环最大轮数，防止无限工具调用
+	MultiAgentEnabled bool `json:",default=false"` // 是否启用 Orchestrator-Worker 多 Agent 编排
+	MaxWorkers        int  `json:",default=3"`     // 单次编排最多拆分的 worker 数
 }
