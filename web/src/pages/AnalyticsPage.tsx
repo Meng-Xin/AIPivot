@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Download,
   Printer,
+  ThumbsUp,
 } from "lucide-react";
 import { useAuthStore } from "../store/auth";
 import {
@@ -504,6 +505,13 @@ export default function AnalyticsPage() {
             sub="转人工 / 会话总数"
             icon={<AlertTriangle className="h-5 w-5 text-rose-600" />}
             color="bg-rose-50"
+          />
+          <KpiCard
+            label="满意度"
+            value={`${(overview?.satisfactionRate ?? 0).toFixed(1)}%`}
+            sub={`已评分 ${overview?.ratedCount ?? 0} 条`}
+            icon={<ThumbsUp className="h-5 w-5 text-sky-600" />}
+            color="bg-sky-50"
           />
         </div>
 

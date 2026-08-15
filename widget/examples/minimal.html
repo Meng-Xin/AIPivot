@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIPivot Widget — 最小接入示例</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 40px; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>客户网站</h1>
+  <p>右下角的悬浮按钮即为 AIPivot Widget。</p>
+
+  <!-- 将 publicKey 替换为你在管理后台创建的 public key（pk_ 前缀） -->
+  <script src="../dist/aipivot-widget.js"></script>
+  <script>
+    window.AIPivotWidget.init({
+      publicKey: 'pk_REPLACE_ME',
+      baseUrl: 'http://127.0.0.1:8888',
+    });
+  </script>
+</body>
+</html>

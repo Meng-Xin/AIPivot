@@ -81,6 +81,7 @@ export interface ShowKnowledgeBase {
   documentCount: number;
   chunkCount: number;
   status: string;
+  suggestedQuestions: string[];
   createdAt: number;
   updatedAt: number;
 }
@@ -360,7 +361,12 @@ export async function listKnowledgeBases(
 
 export async function createKnowledgeBase(
   token: string,
-  data: { name: string; description?: string; model?: string }
+  data: {
+    name: string;
+    description?: string;
+    model?: string;
+    suggestedQuestions?: string[];
+  }
 ) {
   return request<ShowKnowledgeBase>(
     "POST",
@@ -381,7 +387,11 @@ export async function getKnowledgeBase(token: string, id: number) {
 export async function updateKnowledgeBase(
   token: string,
   id: number,
-  data: { name?: string; description?: string }
+  data: {
+    name?: string;
+    description?: string;
+    suggestedQuestions?: string[];
+  }
 ) {
   return request<null>("PUT", `/api/v1/knowledge-bases/${id}`, token, data);
 }
@@ -533,6 +543,8 @@ export interface AnalyticsOverviewData {
   estimatedCost: number;
   aiResolveRate: number;
   escalationRate: number;
+  satisfactionRate: number;
+  ratedCount: number;
   byStatus: ConvStatusStat[];
   byChannel: ChannelStat[];
   modelUsage: ModelUsageStat[];

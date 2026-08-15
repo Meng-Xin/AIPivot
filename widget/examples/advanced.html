@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIPivot Widget — 进阶接入示例（自定义主题 + 句柄控制）</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 40px; color: #333; max-width: 720px; }
+    button { padding: 8px 16px; margin-right: 12px; }
+  </style>
+</head>
+<body>
+  <h1>客户网站（进阶接入）</h1>
+  <p>下方按钮通过 SDK 句柄主动控制 Widget。</p>
+
+  <div style="margin: 24px 0;">
+    <button onclick="handle.open()">打开</button>
+    <button onclick="handle.close()">关闭</button>
+    <button onclick="handle.toggle()">切换</button>
+    <button onclick="handle.send('你好，请介绍一下自己')">主动发送</button>
+  </div>
+
+  <script src="../dist/aipivot-widget.js"></script>
+  <script>
+    const handle = window.AIPivotWidget.init({
+      publicKey: 'pk_REPLACE_ME',
+      baseUrl: 'http://127.0.0.1:8888',
+      title: '智能客服',
+      welcome: '您好，我是 AI 助手，请问有什么可以帮您？',
+      placeholder: '输入消息，Enter 发送...',
+      offset: { bottom: 32, right: 32 },
+      theme: { primary: '#0ea5e9' }, // 自定义主题色（青蓝色）
+      storage: 'localStorage',
+    });
+
+    // 句柄可在任意位置保存使用
+    window.handle = handle;
+  </script>
+</body>
+</html>

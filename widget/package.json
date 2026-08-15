@@ -1,0 +1,47 @@
+{
+  "name": "aipivot-widget",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AIPivot Chat Widget SDK — 可嵌入到任意网站的悬浮聊天组件",
+  "main": "./dist/aipivot-widget.js",
+  "exports": {
+    ".": "./dist/aipivot-widget.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "preact": "^10.25.2",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "2.9.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.6.2",
+    "vite": "^5.4.11"
+  },
+  "overrides": {
+    "@babel/core": "7.27.1",
+    "@babel/traverse": "7.27.1",
+    "@babel/types": "7.27.1",
+    "@babel/parser": "7.27.1",
+    "@babel/generator": "7.27.1",
+    "@babel/code-frame": "7.27.1",
+    "@babel/helper-module-imports": "7.27.1",
+    "@babel/helper-validator-identifier": "7.27.1",
+    "@babel/helper-string-parser": "7.27.1",
+    "@babel/plugin-transform-react-jsx": "7.27.1",
+    "@babel/plugin-transform-react-jsx-development": "7.27.1",
+    "@babel/helper-annotate-as-pure": "7.27.1",
+    "@babel/helper-plugin-utils": "7.27.1",
+    "@babel/plugin-syntax-jsx": "7.27.1"
+  }
+}

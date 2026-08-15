@@ -110,6 +110,7 @@ export default function KnowledgePage() {
     name: string;
     description?: string;
     model?: string;
+    suggestedQuestions?: string[];
   }) => {
     const res = await createKnowledgeBase(token, data);
     if (res.code === 0) {
@@ -123,6 +124,7 @@ export default function KnowledgePage() {
   const handleUpdate = async (data: {
     name?: string;
     description?: string;
+    suggestedQuestions?: string[];
   }) => {
     if (!editingKb) return;
     const res = await updateKnowledgeBase(token, editingKb.id, data);
@@ -682,6 +684,9 @@ function DocEmptyState({ onUpload }: { onUpload: () => void }) {
 
 // ==================== 表单弹窗 ====================
 
+const MAX_SUGGESTED = 6;
+const MAX_SUGGESTED_LEN = 100;
+
 function KbFormModal({
   title,
   initial,
@@ -695,13 +700,29 @@ function KbFormModal({
     name: string;
     description?: string;
     model?: string;
+    suggestedQuestions?: string[];
   }) => Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [model, setModel] = useState("text-embedding-3-small");
+  // 编辑态用 initial.suggestedQuestions 初始化；新建态显式给空数组，提交时空数组也会落库
+  const [questions, setQuestions] = useState<string[]>(
+    initial?.suggestedQuestions ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const addQuestion = () => {
+    if (questions.length >= MAX_SUGGESTED) return;
+    setQuestions([...questions, ""]);
+  };
+  const updateQuestion = (i: number, v: string) => {
+    setQuestions(questions.map((q, idx) => (idx === i ? v : q)));
+  };
+  const removeQuestion = (i: number) => {
+    setQuestions(questions.filter((_, idx) => idx !== i));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -709,6 +730,12 @@ function KbFormModal({
       setError("知识库名称不能为空");
       return;
     }
+    // 清洗：去首尾空白、过滤空串、超长截断
+    const cleaned = questions
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0)
+      .map((q) => (q.length > MAX_SUGGESTED_LEN ? q.slice(0, MAX_SUGGESTED_LEN) : q));
+
     setLoading(true);
     setError("");
     try {
@@ -716,6 +743,8 @@ function KbFormModal({
         name: name.trim(),
         description: description.trim() || undefined,
         model: initial ? undefined : model,
+        // 显式传切片（含空数组），便于"清空"语义
+        suggestedQuestions: cleaned,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
@@ -726,7 +755,7 @@ function KbFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="mb-5 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
           <button
@@ -790,6 +819,53 @@ function KbFormModal({
               </p>
             </div>
           )}
+
+          {/* 引导问答 / 快捷回复 */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-700">
+                引导问答（可选）
+              </label>
+              <span className="text-xs text-slate-400">
+                {questions.length}/{MAX_SUGGESTED} 条
+              </span>
+            </div>
+            <p className="mb-2 text-xs text-slate-400">
+              Widget 首屏展示为快捷回复按钮，最多 {MAX_SUGGESTED} 条，每条 ≤ {MAX_SUGGESTED_LEN} 字
+            </p>
+            <div className="space-y-2">
+              {questions.map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={q}
+                    maxLength={MAX_SUGGESTED_LEN}
+                    onChange={(e) => updateQuestion(i, e.target.value)}
+                    placeholder={`快捷回复 ${i + 1}`}
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(i)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                    title="删除"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {questions.length < MAX_SUGGESTED && (
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="mt-2 flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-indigo-400 hover:text-indigo-600"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                添加问题
+              </button>
+            )}
+          </div>
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500">
