@@ -17,6 +17,8 @@ type Message struct {
 	LatencyMs      int       `gorm:"column:latency_ms"`          // LLM 响应延迟（毫秒，仅 assistant 消息）
 	Sources        string    `gorm:"column:sources;type:jsonb"`  // 知识来源引用（RAG 检索命中的 chunk UUID 列表）
 	Metadata       string    `gorm:"column:metadata;type:jsonb"` // 消息元数据（评价、标注等）
+	Rating         string    `gorm:"column:rating"`              // 访客评分：up / down / 空=未评分
+	RatingFeedback string    `gorm:"column:rating_feedback"`     // 负评文字反馈（仅 rating=down 时可能有值）
 	CreatedAt      time.Time `gorm:"column:created_at"`          // 创建时间
 }
 

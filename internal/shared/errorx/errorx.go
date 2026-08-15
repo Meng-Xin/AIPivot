@@ -16,6 +16,9 @@ const (
 	CodeLLMUnavailable = 1002
 	CodeTokenExceeded  = 1003
 	CodeKnowledgeMiss  = 1004
+
+	// Rate limit
+	CodeTooManyRequests = 429
 )
 
 // BusinessError 统一业务错误类型，支持错误包装以保留原始 cause 便于日志追踪。

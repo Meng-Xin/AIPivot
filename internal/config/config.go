@@ -102,6 +102,10 @@ type ModelPricingConf struct {
 // RateLimitConf 每租户 Token 日配额限流配置
 type RateLimitConf struct {
 	DailyTokenLimit int64 `json:",default=0"` // 每日 Token 上限（0 = 不限制）
+
+	// Widget 访客维度滑动窗口限流（防止恶意刷量）
+	WidgetVisitorWindowSec int   `json:",default=60"`  // 窗口大小（秒），默认 1 分钟
+	WidgetVisitorLimit     int64 `json:",default=10"`  // 窗口内单访客最大请求数（0 = 不限制）
 }
 
 // AgentConf Function Calling Agent 配置

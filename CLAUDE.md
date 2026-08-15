@@ -99,6 +99,19 @@ AIPivot 是一个基于 Go 语言的 **多租户 AI 能力中台**，使用 go-z
 │   │   └── lib/api.ts                  #   API 客户端 + SSE 流式解析
 │   ├── vite.config.ts                  #   Vite 配置（proxy /api → 后端 8888）
 │   └── package.json
+├── widget/                             # ★ Chat Widget SDK（Preact + Vite lib + Shadow DOM）
+│   ├── src/
+│   │   ├── index.tsx                   #   SDK 入口，导出 init() 挂载到 window.AIPivotWidget
+│   │   ├── widget.tsx                  #   主组件（编排会话初始化/SSE 流/状态）
+│   │   ├── client.ts                   #   WidgetClient（createSession/sendMessageStream/listMessages）
+│   │   ├── store.ts                    #   Zustand 状态机（提炼自 web/src/store/chat.ts）
+│   │   ├── storage.ts                  #   sessionToken + visitorId 持久化
+│   │   ├── components/                 #   Launcher/ChatPanel/MessageList/MessageBubble/InputArea/TypingIndicator
+│   │   ├── utils/                      #   sse 解析 / dom（Shadow DOM）/ escape（XSS）/ uuid / retry
+│   │   └── styles/index.css            #   TailwindCSS + 打字光标动画
+│   ├── examples/                       #   minimal.html / advanced.html 接入示例
+│   ├── vite.config.ts                  #   lib 模式 IIFE 输出，CSS 内联
+│   └── package.json
 ├── deploy/
 │   ├── docker-compose.yml              # 本地依赖编排（pgvector + Redis + Jaeger + Prometheus + Grafana）
 │   ├── prometheus/prometheus.yml
@@ -165,6 +178,9 @@ DB → Query(GORM Gen) → DAO → Repo(接口) → ServiceContext → Logic
 | `/api/v1/knowledge-bases/:kbId` | GET/PUT/DELETE | 知识库详情 / 更新 / 删除 |
 | `/api/v1/knowledge-bases/:kbId/documents` | GET | 文档列表 |
 | `/api/v1/knowledge-bases/:kbId/documents/upload` | POST | 上传文档 |
+| `/api/v1/open/widget/sessions` | POST | **Widget**：创建访客会话（public key 认证 + Origin 白名单） |
+| `/api/v1/open/widget/sessions/:sessionToken/messages` | GET | **Widget**：拉取历史消息 |
+| `/api/v1/open/widget/sessions/:sessionToken/messages/stream` | POST | **Widget**：流式发送消息（SSE，持久化 user + assistant） |
 
 ### 数据库表
 
@@ -276,6 +292,10 @@ make regen
 | `make web-dev` | 启动前端开发服务器（5173，proxy → 8888） |
 | `make web-build` | 构建前端生产包 |
 | `make web-preview` | 预览前端生产构建 |
+| `make widget-install` | 安装 Widget SDK 依赖 |
+| `make widget-dev` | 启动 Widget 开发服务器（5174） |
+| `make widget-build` | 构建 Widget SDK 单文件（dist/aipivot-widget.js，gzip ≈ 16KB） |
+| `make widget-preview` | 预览 Widget 生产构建 |
 
 ### 服务地址
 
@@ -289,15 +309,16 @@ make regen
 
 ## 关键约定
 
-1. **API-First**：任何接口变更必须先修改 `.api` 文件，再通过 goctl 生成代码
+1. **API-First 单一真相源**：任何路由/请求/响应类型必须先在 `api/*.api` 中声明并由 goctl 生成。`routes.go` 和 `types.go` 已是纯 goctl 生成（DO NOT EDIT 标记），**严禁手写混入**——新增端点漏在 .api 中声明会导致 `make api` 后路由丢失
 2. **分层严格**：Handler 只做参数绑定 + 响应输出；Logic 只做业务编排；Domain 承载校验规则；Repo 封装数据访问
-3. **禁止跨层**：Logic 禁止直接访问 DAO / SQL / GORM；Handler 禁止编写业务逻辑
-4. **Assembler 三方向覆盖**：Request→Model、Model→PO、PO→Show；**创建 PO 时必须显式设置 UUID 字段**（`uuid.New().String()`），不能依赖数据库默认值（GORM 会传空字符串覆盖）
-5. **错误处理**：业务错误用 `errorx.NewBusinessError`（HTTP 200 + code），系统错误用 `errorx.NewInternalError`
-6. **可观测性贯穿**：每个请求自动包含 RequestID、TraceID、Metrics、结构化日志
-7. **优先本地验证**：`go test ./...` + `go build ./...` 先通过再推进
-8. **注释规范**：复杂逻辑关键决策点注释 WHY，不注释 WHAT；禁止逐行注释
-9. **DDL 规范**：PostgreSQL 建表必须有 `COMMENT ON TABLE` + `COMMENT ON COLUMN`
-10. **设计规范文档**：详细架构与命名规范参见 `docs/project-design-spec.md`
-11. **npm 国内源**：已全局配置 `registry=https://registry.npmmirror.com`
-12. **Docker 镜像**：PostgreSQL 必须使用 `pgvector/pgvector:pg16`（含 vector 扩展），不能用原版 `postgres:16`
+3. **禁止跨层**：Logic 禁止直接访问 DAO / SQL / GORM；Handler 禁止编写业务逻辑；**Handler 只能依赖 `internal/types` 的契约类型**，禁止反向引用 logic 包的私有结构体
+4. **手写 Handler 边界**：SSE 流式 / 二进制文件下载 / WebSocket 等 goctl 无法生成标准 JSON 响应的场景，允许手写 handler 实现，但必须满足两个约束 —— (a) 端点先在对应 `.api` 文件中声明（让 goctl 生成路由注册与参数解析）；(b) 请求/响应类型仍走 `internal/types`，不引入 logic 私有类型
+5. **Assembler 三方向覆盖**：Request→Model、Model→PO、PO→Show；**创建 PO 时必须显式设置 UUID 字段**（`uuid.New().String()`），不能依赖数据库默认值（GORM 会传空字符串覆盖）
+6. **错误处理**：业务错误用 `errorx.NewBusinessError`（HTTP 200 + code），系统错误用 `errorx.NewInternalError`
+7. **可观测性贯穿**：每个请求自动包含 RequestID、TraceID、Metrics、结构化日志
+8. **优先本地验证**：`go test ./...` + `go build ./...` 先通过再推进
+9. **注释规范**：复杂逻辑关键决策点注释 WHY，不注释 WHAT；禁止逐行注释
+10. **DDL 规范**：PostgreSQL 建表必须有 `COMMENT ON TABLE` + `COMMENT ON COLUMN`
+11. **设计规范文档**：详细架构与命名规范参见 `docs/project-design-spec.md`
+12. **npm 国内源**：已全局配置 `registry=https://registry.npmmirror.com`
+13. **Docker 镜像**：PostgreSQL 必须使用 `pgvector/pgvector:pg16`（含 vector 扩展），不能用原版 `postgres:16`

@@ -40,6 +40,8 @@ func newMessage(db *gorm.DB, opts ...gen.DOOption) message {
 	_message.LatencyMs = field.NewInt(tableName, "latency_ms")
 	_message.Sources = field.NewString(tableName, "sources")
 	_message.Metadata = field.NewString(tableName, "metadata")
+	_message.Rating = field.NewString(tableName, "rating")
+	_message.RatingFeedback = field.NewString(tableName, "rating_feedback")
 	_message.CreatedAt = field.NewTime(tableName, "created_at")
 
 	_message.fillFieldMap()
@@ -63,6 +65,8 @@ type message struct {
 	LatencyMs      field.Int
 	Sources        field.String
 	Metadata       field.String
+	Rating         field.String
+	RatingFeedback field.String
 	CreatedAt      field.Time
 
 	fieldMap map[string]field.Expr
@@ -92,6 +96,8 @@ func (m *message) updateTableName(table string) *message {
 	m.LatencyMs = field.NewInt(table, "latency_ms")
 	m.Sources = field.NewString(table, "sources")
 	m.Metadata = field.NewString(table, "metadata")
+	m.Rating = field.NewString(table, "rating")
+	m.RatingFeedback = field.NewString(table, "rating_feedback")
 	m.CreatedAt = field.NewTime(table, "created_at")
 
 	m.fillFieldMap()
@@ -117,7 +123,7 @@ func (m *message) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (m *message) fillFieldMap() {
-	m.fieldMap = make(map[string]field.Expr, 13)
+	m.fieldMap = make(map[string]field.Expr, 15)
 	m.fieldMap["id"] = m.ID
 	m.fieldMap["uuid"] = m.UUID
 	m.fieldMap["conversation_id"] = m.ConversationID
@@ -130,6 +136,8 @@ func (m *message) fillFieldMap() {
 	m.fieldMap["latency_ms"] = m.LatencyMs
 	m.fieldMap["sources"] = m.Sources
 	m.fieldMap["metadata"] = m.Metadata
+	m.fieldMap["rating"] = m.Rating
+	m.fieldMap["rating_feedback"] = m.RatingFeedback
 	m.fieldMap["created_at"] = m.CreatedAt
 }
 

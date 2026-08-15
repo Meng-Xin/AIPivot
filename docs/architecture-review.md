@@ -254,7 +254,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] LLM Gateway 多模型路由（配置驱动模型列表 + GET /api/v1/models + per-conversation 模型选择）
 - [x] 管理后台：知识库 CRUD UI
 
-### Phase 2 — 增强（4-8 周） 🚧 进行中
+### Phase 2 — 增强（4-8 周） ✅ 已完成
 - [x] Agent/Skill 框架 + Function Calling
 - [x] 人工客服转接
 - [x] 多渠道接入（API/Webhook 优先）
@@ -263,13 +263,17 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
   - OpenAI 兼容 Chat Completions API（同步 + SSE 流式）
   - Webhook 管理 CRUD + 事件投递（HMAC 签名 + 指数退避重试）
   - Webhook 入站消息处理（自动创建会话 + RAG 回复）
-- [ ] 对话分析仪表盘
-- [ ] LLM 成本追踪与限流
+- [x] 对话分析仪表盘（AnalyticsPage：6 KPI + SVG 双趋势图 + 模型用量表 + 状态/渠道分布）
+- [x] LLM 成本追踪（ModelPricing 配置即时估算，不落库）+ Redis 日 Token 限流（TokenLimiter）
 
-### Phase 3 — 平台化（8+ 周）
-- [x] 可视化 Flow 编辑器
-- [x] 多 Agent 协作
-- [x] 客户自助 Skill 注册
+### Phase 3 — 平台化（8+ 周） 🚧 进行中
+- [x] 可视化 Flow 编辑器（FlowPage：节点画布 + 连线 + Inspector + 状态切换；Flow CRUD 已 API-First 落地）
+- [x] 多 Agent 协作（Orchestrator-Worker：planner → 并发 worker → synthesizer 汇总）
+- [x] 客户自助 Skill 注册（SkillPage：HTTP Skill 管理 + JSON Schema 参数校验）
+- [x] SLA 报表导出（CSV 二进制下载 + 浏览器原生打印 PDF）
+- [x] 多租户管理后台（AdminPage：租户设置 + 用户管理 + API 密钥三 Tab）
+- [ ] **Flow 执行运行时**（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点）— ⚠️ 当前阻塞项
+- [ ] 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
 - [ ] 从 pgvector 迁移到 Milvus（如有需要）
 
 ---
@@ -537,7 +541,7 @@ data: {"code":1002,"msg":"AI 回复生成失败"}
 | `migrations/000004_conversation_model.down.sql` | **新文件** — 回滚 |
 | `internal/shared/po/conversation.go` | 增加 `Model` 字段 |
 | `internal/types/types.go` | goctl 重新生成，含新类型 |
-| `internal/handler/routes.go` | goctl 重新生成 + 手动恢复 SSE 路由 |
+| `internal/handler/routes.go` | goctl 重新生成（SSE 端点已在 chat.api 声明，自动注册，无需手动恢复） |
 | `internal/handler/models/listModelsHandler.go` | **新文件** — goctl 生成 |
 | `internal/logic/models/listModelsLogic.go` | **新文件** — 读取配置返回模型列表 |
 | `internal/modules/chat/domain/assembler/conversation.go` | 映射 Model 字段 |
@@ -864,4 +868,4 @@ active ────────────────────────�
 1. P3: Flow 执行运行时（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点）
 2. P3: 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
 
-*文档版本：v2.5 | 更新日期：2026-06-07*
+*文档版本：v2.6 | 更新日期：2026-06-15*

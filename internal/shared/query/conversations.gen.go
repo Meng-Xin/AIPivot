@@ -37,6 +37,7 @@ func newConversation(db *gorm.DB, opts ...gen.DOOption) conversation {
 	_conversation.Model = field.NewString(tableName, "model")
 	_conversation.Status = field.NewString(tableName, "status")
 	_conversation.Channel = field.NewString(tableName, "channel")
+	_conversation.ExternalUserID = field.NewString(tableName, "external_user_id")
 	_conversation.MessageCount = field.NewInt(tableName, "message_count")
 	_conversation.Summary = field.NewString(tableName, "summary")
 	_conversation.Metadata = field.NewString(tableName, "metadata")
@@ -62,6 +63,7 @@ type conversation struct {
 	Model           field.String
 	Status          field.String
 	Channel         field.String
+	ExternalUserID  field.String
 	MessageCount    field.Int
 	Summary         field.String
 	Metadata        field.String
@@ -93,6 +95,7 @@ func (c *conversation) updateTableName(table string) *conversation {
 	c.Model = field.NewString(table, "model")
 	c.Status = field.NewString(table, "status")
 	c.Channel = field.NewString(table, "channel")
+	c.ExternalUserID = field.NewString(table, "external_user_id")
 	c.MessageCount = field.NewInt(table, "message_count")
 	c.Summary = field.NewString(table, "summary")
 	c.Metadata = field.NewString(table, "metadata")
@@ -127,7 +130,7 @@ func (c *conversation) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (c *conversation) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 15)
+	c.fieldMap = make(map[string]field.Expr, 16)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["uuid"] = c.UUID
 	c.fieldMap["tenant_id"] = c.TenantID
@@ -137,6 +140,7 @@ func (c *conversation) fillFieldMap() {
 	c.fieldMap["model"] = c.Model
 	c.fieldMap["status"] = c.Status
 	c.fieldMap["channel"] = c.Channel
+	c.fieldMap["external_user_id"] = c.ExternalUserID
 	c.fieldMap["message_count"] = c.MessageCount
 	c.fieldMap["summary"] = c.Summary
 	c.fieldMap["metadata"] = c.Metadata

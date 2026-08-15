@@ -31,6 +31,8 @@ type AnalyticsOverviewData struct {
 	EstimatedCost       float64          `json:"estimatedCost"`       // 估算总费用（美元）
 	AIResolveRate       float64          `json:"aiResolveRate"`       // AI 解决率 %（closed/total）
 	EscalationRate      float64          `json:"escalationRate"`      // 转人工率 %（waiting_human/total）
+	SatisfactionRate    float64          `json:"satisfactionRate"`    // 满意度 %（up / (up + down)）
+	RatedCount          int64            `json:"ratedCount"`          // 已评分消息数（参考分母）
 	ByStatus            []ConvStatusStat `json:"byStatus"`            // 各状态会话分布
 	ByChannel           []ChannelStat    `json:"byChannel"`           // 各渠道会话分布
 	ModelUsage          []ModelUsageStat `json:"modelUsage"`          // 各模型使用详情
@@ -142,8 +144,11 @@ type CreateApiKeyData struct {
 }
 
 type CreateApiKeyRequest struct {
-	Name   string   `json:"name"`            // 密钥名称
-	Scopes []string `json:"scopes,optional"` // 权限范围（默认 ["chat"]）
+	Name            string   `json:"name"`                            // 密钥名称
+	Scopes          []string `json:"scopes,optional"`                 // 权限范围（默认 ["chat"]）
+	KeyType         string   `json:"keyType,optional,default=master"` // 密钥类型: master / public（public 用于 Widget 嵌入）
+	AllowedOrigins  []string `json:"allowedOrigins,optional"`         // 允许的来源域名白名单（仅 public key 生效）
+	KnowledgeBaseID int64    `json:"knowledgeBaseId,optional"`        // 绑定的知识库 ID（仅 public key 生效，限制 RAG 检索范围）
 }
 
 type CreateApiKeyResponse struct {
@@ -168,9 +173,10 @@ type CreateFlowRequest struct {
 }
 
 type CreateKnowledgeBaseRequest struct {
-	Name        string `json:"name"`                                          // 知识库名称
-	Description string `json:"description,optional"`                          // 知识库描述
-	Model       string `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+	Name               string   `json:"name"`                                          // 知识库名称
+	Description        string   `json:"description,optional"`                          // 知识库描述
+	Model              string   `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+	SuggestedQuestions []string `json:"suggestedQuestions,optional"`                   // 引导问答列表（最多 6 条，每条 ≤ 100 字）
 }
 
 type CreateSkillRequest struct {
@@ -506,17 +512,18 @@ type ShowFlow struct {
 }
 
 type ShowKnowledgeBase struct {
-	ID          int64  `json:"id"`          // 知识库 ID
-	UUID        string `json:"uuid"`        // 唯一标识
-	Name        string `json:"name"`        // 知识库名称
-	Description string `json:"description"` // 描述
-	Model       string `json:"model"`       // Embedding 模型
-	Dimension   int    `json:"dimension"`   // 向量维度
-	Status      string `json:"status"`      // 状态
-	DocCount    int    `json:"docCount"`    // 文档数
-	ChunkCount  int    `json:"chunkCount"`  // 切块数
-	CreatedAt   int64  `json:"createdAt"`   // 创建时间
-	UpdatedAt   int64  `json:"updatedAt"`   // 更新时间
+	ID                 int64    `json:"id"`                 // 知识库 ID
+	UUID               string   `json:"uuid"`               // 唯一标识
+	Name               string   `json:"name"`               // 知识库名称
+	Description        string   `json:"description"`        // 描述
+	Model              string   `json:"model"`              // Embedding 模型
+	Dimension          int      `json:"dimension"`          // 向量维度
+	Status             string   `json:"status"`             // 状态
+	DocCount           int      `json:"docCount"`           // 文档数
+	ChunkCount         int      `json:"chunkCount"`         // 切块数
+	SuggestedQuestions []string `json:"suggestedQuestions"` // 引导问答列表
+	CreatedAt          int64    `json:"createdAt"`          // 创建时间
+	UpdatedAt          int64    `json:"updatedAt"`          // 更新时间
 }
 
 type ShowMessage struct {
@@ -541,7 +548,7 @@ type ShowModel struct {
 	IsDefault bool   `json:"isDefault"`           // 是否为默认模型
 	Available bool   `json:"available"`           // 当前网关是否可用
 	Status    string `json:"status"`              // available / unavailable
-	Error     string `json:"error,omitempty"`      // 不可用原因
+	Error     string `json:"error,omitempty"`     // 不可用原因
 }
 
 type ShowSkill struct {
@@ -626,9 +633,10 @@ type UpdateFlowRequest struct {
 }
 
 type UpdateKnowledgeBaseRequest struct {
-	ID          int64  `path:"id"`                   // 知识库 ID
-	Name        string `json:"name,optional"`        // 知识库名称
-	Description string `json:"description,optional"` // 知识库描述
+	ID                 int64    `path:"id"`                          // 知识库 ID
+	Name               string   `json:"name,optional"`               // 知识库名称
+	Description        string   `json:"description,optional"`        // 知识库描述
+	SuggestedQuestions []string `json:"suggestedQuestions,optional"` // 引导问答列表
 }
 
 type UpdateSkillRequest struct {
@@ -699,4 +707,63 @@ type WebhookListResponse struct {
 	Msg       string        `json:"msg"`
 	Timestamp int64         `json:"timestamp"`
 	Data      []ShowWebhook `json:"data"`
+}
+
+type WidgetMessageFeedbackRequest struct {
+	SessionToken string `path:"sessionToken"`      // 会话令牌
+	MessageID    string `path:"messageId"`         // 消息 UUID
+	Rating       string `json:"rating"`            // "up" / "down"
+	Feedback     string `json:"feedback,optional"` // 负评文字（≤500 字，可选）
+}
+
+type WidgetMessageItem struct {
+	UUID           string   `json:"uuid"`
+	Role           string   `json:"role"` // user / assistant / system
+	Content        string   `json:"content"`
+	ContentType    string   `json:"contentType"`
+	TokenCount     int      `json:"tokenCount,omitempty"`     // Token 消耗（仅 assistant）
+	Model          string   `json:"model,omitempty"`          // 模型（仅 assistant）
+	Sources        []string `json:"sources,omitempty"`        // RAG 来源引用
+	Rating         string   `json:"rating,omitempty"`         // "" / "up" / "down"
+	RatingFeedback string   `json:"ratingFeedback,omitempty"` // 负评文字
+	CreatedAt      int64    `json:"createdAt"`
+}
+
+type WidgetMessageListRequest struct {
+	SessionToken string `path:"sessionToken"`        // 会话令牌
+	Page         int    `form:"page,default=1"`      // 页码（从 1 开始）
+	PageSize     int    `form:"pageSize,default=20"` // 每页大小
+}
+
+type WidgetMessageListResponse struct {
+	Code      int32               `json:"code"`
+	Msg       string              `json:"msg"`
+	Timestamp int64               `json:"timestamp"`
+	Data      []WidgetMessageItem `json:"data"`
+}
+
+type WidgetMessageSendRequest struct {
+	SessionToken string `path:"sessionToken"`             // 会话令牌（= conversation UUID）
+	Content      string `json:"content"`                  // 用户消息内容
+	ContentType  string `json:"contentType,default=text"` // 内容类型，默认 text
+}
+
+type WidgetSessionCreateRequest struct {
+	VisitorID string `json:"visitorId"`      // 访客标识（前端生成并持久化，建议 UUID v4）
+	Title     string `json:"title,optional"` // 会话标题（可选，默认 "Widget: <visitorId>"）
+}
+
+type WidgetSessionData struct {
+	SessionToken       string   `json:"sessionToken"`                // 会话令牌（= conversation UUID，后续请求凭证）
+	ConversationID     int64    `json:"conversationId"`              // 会话 ID
+	VisitorID          string   `json:"visitorId"`                   // 访客标识
+	CreatedAt          int64    `json:"createdAt"`                   // 创建时间（Unix 秒）
+	SuggestedQuestions []string `json:"suggestedQuestions,optional"` // 引导问答列表（来自绑定的 KB 配置）
+}
+
+type WidgetSessionResponse struct {
+	Code      int32             `json:"code"`
+	Msg       string            `json:"msg"`
+	Timestamp int64             `json:"timestamp"`
+	Data      WidgetSessionData `json:"data"`
 }

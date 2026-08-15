@@ -37,6 +37,8 @@ type (
 		EstimatedCost       float64          `json:"estimatedCost"`       // 估算总费用（美元）
 		AIResolveRate       float64          `json:"aiResolveRate"`       // AI 解决率 %（closed/total）
 		EscalationRate      float64          `json:"escalationRate"`      // 转人工率 %（waiting_human/total）
+		SatisfactionRate    float64          `json:"satisfactionRate"`    // 满意度 %（up / (up + down)）
+		RatedCount          int64            `json:"ratedCount"`          // 已评分消息数（参考分母）
 		ByStatus            []ConvStatusStat `json:"byStatus"`            // 各状态会话分布
 		ByChannel           []ChannelStat    `json:"byChannel"`           // 各渠道会话分布
 		ModelUsage          []ModelUsageStat `json:"modelUsage"`          // 各模型使用详情

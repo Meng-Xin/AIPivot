@@ -36,6 +36,16 @@ func (r *ConversationRepo) GetByID(ctx context.Context, id int64) (*po.Conversat
 	return result, err
 }
 
+// GetByUUID 通过 conversation UUID 查询会话，供 Widget Session Token 鉴权使用。
+func (r *ConversationRepo) GetByUUID(ctx context.Context, uuid string) (*po.Conversation, error) {
+	c := r.q.Conversation
+	result, err := c.WithContext(ctx).Where(c.UUID.Eq(uuid)).First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return result, err
+}
+
 func (r *ConversationRepo) GetList(ctx context.Context, tenantID int64, page, pageSize int, status string) ([]*po.Conversation, int64, error) {
 	c := r.q.Conversation
 	q := c.WithContext(ctx).Where(c.TenantID.Eq(tenantID))

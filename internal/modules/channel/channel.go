@@ -7,6 +7,7 @@ const (
 	Web     ChannelType = "web"     // 管理后台/前端 Chat Widget（JWT 认证）
 	API     ChannelType = "api"     // 外部系统通过 REST API 接入（API Key 认证）
 	Webhook ChannelType = "webhook" // 第三方平台 Webhook 回调接入
+	Widget  ChannelType = "widget"  // 嵌入式 Chat Widget（public key 认证，访客会话）
 	Wechat  ChannelType = "wechat"  // 微信（Phase 3）
 	Feishu  ChannelType = "feishu"  // 飞书（Phase 3）
 )
@@ -14,7 +15,7 @@ const (
 // Valid 校验渠道类型是否合法。
 func (c ChannelType) Valid() bool {
 	switch c {
-	case Web, API, Webhook, Wechat, Feishu:
+	case Web, API, Webhook, Widget, Wechat, Feishu:
 		return true
 	}
 	return false

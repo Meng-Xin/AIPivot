@@ -10,31 +10,34 @@ info (
 type (
 	// CreateKnowledgeBaseRequest 创建知识库请求
 	CreateKnowledgeBaseRequest {
-		Name        string `json:"name"`                          // 知识库名称
-		Description string `json:"description,optional"`          // 知识库描述
-		Model       string `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+		Name               string   `json:"name"`                          // 知识库名称
+		Description        string   `json:"description,optional"`          // 知识库描述
+		Model              string   `json:"model,optional,default=text-embedding-3-small"` // Embedding 模型
+		SuggestedQuestions []string `json:"suggestedQuestions,optional"`   // 引导问答列表（最多 6 条，每条 ≤ 100 字）
 	}
 
 	// UpdateKnowledgeBaseRequest 更新知识库请求
 	UpdateKnowledgeBaseRequest {
-		ID          int64  `path:"id"`                            // 知识库 ID
-		Name        string `json:"name,optional"`                 // 知识库名称
-		Description string `json:"description,optional"`          // 知识库描述
+		ID                 int64    `path:"id"`                            // 知识库 ID
+		Name               string   `json:"name,optional"`                 // 知识库名称
+		Description        string   `json:"description,optional"`          // 知识库描述
+		SuggestedQuestions []string `json:"suggestedQuestions,optional"`   // 引导问答列表
 	}
 
 	// ShowKnowledgeBase 知识库展示对象
 	ShowKnowledgeBase {
-		ID          int64  `json:"id"`                            // 知识库 ID
-		UUID        string `json:"uuid"`                          // 唯一标识
-		Name        string `json:"name"`                          // 知识库名称
-		Description string `json:"description"`                   // 描述
-		Model       string `json:"model"`                         // Embedding 模型
-		Dimension   int    `json:"dimension"`                     // 向量维度
-		Status      string `json:"status"`                        // 状态
-		DocCount    int    `json:"docCount"`                      // 文档数
-		ChunkCount  int    `json:"chunkCount"`                    // 切块数
-		CreatedAt   int64  `json:"createdAt"`                     // 创建时间
-		UpdatedAt   int64  `json:"updatedAt"`                     // 更新时间
+		ID                 int64    `json:"id"`                            // 知识库 ID
+		UUID               string   `json:"uuid"`                          // 唯一标识
+		Name               string   `json:"name"`                          // 知识库名称
+		Description        string   `json:"description"`                   // 描述
+		Model              string   `json:"model"`                         // Embedding 模型
+		Dimension          int      `json:"dimension"`                     // 向量维度
+		Status             string   `json:"status"`                        // 状态
+		DocCount           int      `json:"docCount"`                      // 文档数
+		ChunkCount         int      `json:"chunkCount"`                    // 切块数
+		SuggestedQuestions []string `json:"suggestedQuestions"`            // 引导问答列表
+		CreatedAt          int64    `json:"createdAt"`                     // 创建时间
+		UpdatedAt          int64    `json:"updatedAt"`                     // 更新时间
 	}
 
 	// GetKnowledgeBaseRequest 获取知识库详情

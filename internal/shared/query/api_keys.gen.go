@@ -35,6 +35,9 @@ func newApiKey(db *gorm.DB, opts ...gen.DOOption) apiKey {
 	_apiKey.KeyPrefix = field.NewString(tableName, "key_prefix")
 	_apiKey.Scopes = field.NewString(tableName, "scopes")
 	_apiKey.Status = field.NewString(tableName, "status")
+	_apiKey.KeyType = field.NewString(tableName, "key_type")
+	_apiKey.AllowedOrigins = field.NewField(tableName, "allowed_origins")
+	_apiKey.KnowledgeBaseID = field.NewInt64(tableName, "knowledge_base_id")
 	_apiKey.LastUsed = field.NewTime(tableName, "last_used")
 	_apiKey.ExpiresAt = field.NewTime(tableName, "expires_at")
 	_apiKey.CreatedAt = field.NewTime(tableName, "created_at")
@@ -48,18 +51,21 @@ func newApiKey(db *gorm.DB, opts ...gen.DOOption) apiKey {
 type apiKey struct {
 	apiKeyDo apiKeyDo
 
-	ALL       field.Asterisk
-	ID        field.Int64
-	TenantID  field.Int64
-	Name      field.String
-	KeyHash   field.String
-	KeyPrefix field.String
-	Scopes    field.String
-	Status    field.String
-	LastUsed  field.Time
-	ExpiresAt field.Time
-	CreatedAt field.Time
-	UpdatedAt field.Time
+	ALL             field.Asterisk
+	ID              field.Int64
+	TenantID        field.Int64
+	Name            field.String
+	KeyHash         field.String
+	KeyPrefix       field.String
+	Scopes          field.String
+	Status          field.String
+	KeyType         field.String
+	AllowedOrigins  field.Field
+	KnowledgeBaseID field.Int64
+	LastUsed        field.Time
+	ExpiresAt       field.Time
+	CreatedAt       field.Time
+	UpdatedAt       field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -83,6 +89,9 @@ func (a *apiKey) updateTableName(table string) *apiKey {
 	a.KeyPrefix = field.NewString(table, "key_prefix")
 	a.Scopes = field.NewString(table, "scopes")
 	a.Status = field.NewString(table, "status")
+	a.KeyType = field.NewString(table, "key_type")
+	a.AllowedOrigins = field.NewField(table, "allowed_origins")
+	a.KnowledgeBaseID = field.NewInt64(table, "knowledge_base_id")
 	a.LastUsed = field.NewTime(table, "last_used")
 	a.ExpiresAt = field.NewTime(table, "expires_at")
 	a.CreatedAt = field.NewTime(table, "created_at")
@@ -111,7 +120,7 @@ func (a *apiKey) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (a *apiKey) fillFieldMap() {
-	a.fieldMap = make(map[string]field.Expr, 11)
+	a.fieldMap = make(map[string]field.Expr, 14)
 	a.fieldMap["id"] = a.ID
 	a.fieldMap["tenant_id"] = a.TenantID
 	a.fieldMap["name"] = a.Name
@@ -119,6 +128,9 @@ func (a *apiKey) fillFieldMap() {
 	a.fieldMap["key_prefix"] = a.KeyPrefix
 	a.fieldMap["scopes"] = a.Scopes
 	a.fieldMap["status"] = a.Status
+	a.fieldMap["key_type"] = a.KeyType
+	a.fieldMap["allowed_origins"] = a.AllowedOrigins
+	a.fieldMap["knowledge_base_id"] = a.KnowledgeBaseID
 	a.fieldMap["last_used"] = a.LastUsed
 	a.fieldMap["expires_at"] = a.ExpiresAt
 	a.fieldMap["created_at"] = a.CreatedAt

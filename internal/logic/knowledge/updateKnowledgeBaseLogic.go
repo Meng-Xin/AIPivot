@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/shared/errorx"
 	"aipivot/internal/svc"
 	"aipivot/internal/types"
@@ -45,6 +46,12 @@ func (l *UpdateKnowledgeBaseLogic) UpdateKnowledgeBase(req *types.UpdateKnowledg
 	}
 	if req.Description != "" {
 		updates["description"] = req.Description
+	}
+	// nil 切片表示不更新；非 nil（含空数组）才落库，便于清空引导问答
+	if req.SuggestedQuestions != nil {
+		updates["suggested_questions"] = knowledge.SerializeSuggestedQuestions(
+			knowledge.NormalizeSuggestedQuestions(req.SuggestedQuestions),
+		)
 	}
 
 	if len(updates) > 0 {

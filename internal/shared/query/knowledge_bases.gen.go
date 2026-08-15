@@ -39,6 +39,7 @@ func newKnowledgeBase(db *gorm.DB, opts ...gen.DOOption) knowledgeBase {
 	_knowledgeBase.DocCount = field.NewInt(tableName, "doc_count")
 	_knowledgeBase.ChunkCount = field.NewInt(tableName, "chunk_count")
 	_knowledgeBase.Settings = field.NewString(tableName, "settings")
+	_knowledgeBase.SuggestedQuestions = field.NewString(tableName, "suggested_questions")
 	_knowledgeBase.CreatedAt = field.NewTime(tableName, "created_at")
 	_knowledgeBase.UpdatedAt = field.NewTime(tableName, "updated_at")
 
@@ -50,20 +51,21 @@ func newKnowledgeBase(db *gorm.DB, opts ...gen.DOOption) knowledgeBase {
 type knowledgeBase struct {
 	knowledgeBaseDo knowledgeBaseDo
 
-	ALL         field.Asterisk
-	ID          field.Int64
-	UUID        field.String
-	TenantID    field.Int64
-	Name        field.String
-	Description field.String
-	Model       field.String
-	Dimension   field.Int
-	Status      field.String
-	DocCount    field.Int
-	ChunkCount  field.Int
-	Settings    field.String
-	CreatedAt   field.Time
-	UpdatedAt   field.Time
+	ALL                field.Asterisk
+	ID                 field.Int64
+	UUID               field.String
+	TenantID           field.Int64
+	Name               field.String
+	Description        field.String
+	Model              field.String
+	Dimension          field.Int
+	Status             field.String
+	DocCount           field.Int
+	ChunkCount         field.Int
+	Settings           field.String
+	SuggestedQuestions field.String
+	CreatedAt          field.Time
+	UpdatedAt          field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -91,6 +93,7 @@ func (k *knowledgeBase) updateTableName(table string) *knowledgeBase {
 	k.DocCount = field.NewInt(table, "doc_count")
 	k.ChunkCount = field.NewInt(table, "chunk_count")
 	k.Settings = field.NewString(table, "settings")
+	k.SuggestedQuestions = field.NewString(table, "suggested_questions")
 	k.CreatedAt = field.NewTime(table, "created_at")
 	k.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -121,7 +124,7 @@ func (k *knowledgeBase) GetFieldByName(fieldName string) (field.OrderExpr, bool)
 }
 
 func (k *knowledgeBase) fillFieldMap() {
-	k.fieldMap = make(map[string]field.Expr, 13)
+	k.fieldMap = make(map[string]field.Expr, 14)
 	k.fieldMap["id"] = k.ID
 	k.fieldMap["uuid"] = k.UUID
 	k.fieldMap["tenant_id"] = k.TenantID
@@ -133,6 +136,7 @@ func (k *knowledgeBase) fillFieldMap() {
 	k.fieldMap["doc_count"] = k.DocCount
 	k.fieldMap["chunk_count"] = k.ChunkCount
 	k.fieldMap["settings"] = k.Settings
+	k.fieldMap["suggested_questions"] = k.SuggestedQuestions
 	k.fieldMap["created_at"] = k.CreatedAt
 	k.fieldMap["updated_at"] = k.UpdatedAt
 }

@@ -65,3 +65,16 @@ func (l *TokenLimiter) DailyUsage(ctx context.Context, tenantID int64) int64 {
 func dayKey(tenantID int64) string {
 	return fmt.Sprintf("rl:tokens:%d:%s", tenantID, time.Now().Format("2006-01-02"))
 }
+
+// CheckByApiKey 检查 API Key 维度（按租户聚合）的当日 token 配额。
+// Widget public key 共享租户配额，避免单个 key 超量调用。
+// 与 Check 等价，便于在 widget logic 中按 API Key 上下文调用。
+func (l *TokenLimiter) CheckByApiKey(ctx context.Context, tenantID int64) error {
+	return l.Check(ctx, tenantID)
+}
+
+// IncrByApiKey 按 API Key 维度（按租户聚合）累加 token 用量。
+// 语义同 Incr，仅在调用语义上区分（widget 用 key 上下文取 tenantID）。
+func (l *TokenLimiter) IncrByApiKey(ctx context.Context, tenantID int64, amount int) {
+	l.Incr(ctx, tenantID, amount)
+}

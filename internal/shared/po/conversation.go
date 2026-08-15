@@ -13,7 +13,8 @@ type Conversation struct {
 	Title           string     `gorm:"column:title"`               // 会话标题（由 LLM 自动生成或用户指定）
 	Model           string     `gorm:"column:model"`               // 聊天模型标识（如 gpt-4o），空字符串表示使用系统默认模型
 	Status          string     `gorm:"column:status"`              // 状态: active / waiting_human / resolved / closed
-	Channel         string     `gorm:"column:channel"`             // 接入渠道: web / api / wechat / feishu
+	Channel         string     `gorm:"column:channel"`             // 接入渠道: web / api / webhook / widget / wechat / feishu
+	ExternalUserID  string     `gorm:"column:external_user_id"`    // 外部渠道用户标识（Widget 访客 / Webhook 用户），空表示已登录用户
 	MessageCount    int        `gorm:"column:message_count"`       // 消息数量（冗余计数）
 	Summary         string     `gorm:"column:summary"`             // 会话摘要（上下文压缩后的摘要文本）
 	Metadata        string     `gorm:"column:metadata;type:jsonb"` // 会话元数据（客户端信息、标签等）

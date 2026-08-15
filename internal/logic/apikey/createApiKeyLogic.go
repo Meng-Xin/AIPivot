@@ -45,14 +45,35 @@ func (l *CreateApiKeyLogic) CreateApiKey(req *types.CreateApiKeyRequest) (resp *
 	}
 	scopesJSON, _ := json.Marshal(scopes)
 
-	// 生成 32 字节随机密钥，格式: sk-<hex>
+	// 决定密钥类型与前缀：master=sk_（服务端调用） / public=pk_（前端嵌入，需绑定域名白名单 + KB）
+	keyType := req.KeyType
+	if keyType == "" {
+		keyType = "master"
+	}
+	if keyType != "master" && keyType != "public" {
+		return nil, errorx.NewBusinessError(errorx.CodeBadRequest, "keyType 仅支持 master / public")
+	}
+	if keyType == "public" {
+		if len(req.AllowedOrigins) == 0 {
+			return nil, errorx.NewBusinessError(errorx.CodeBadRequest, "public key 必须指定 allowedOrigins")
+		}
+		if req.KnowledgeBaseID == 0 {
+			return nil, errorx.NewBusinessError(errorx.CodeBadRequest, "public key 必须绑定 knowledgeBaseId")
+		}
+	}
+
+	// 生成 32 字节随机密钥，格式: sk-<hex> 或 pk-<hex>
 	rawBytes := make([]byte, 32)
 	if _, err = rand.Read(rawBytes); err != nil {
 		l.Logger.Errorf("CreateApiKey rand err: %v", err)
 		return nil, errorx.NewInternalError("生成 API Key 失败")
 	}
-	rawKey := fmt.Sprintf("sk-%s", hex.EncodeToString(rawBytes))
-	keyPrefix := rawKey[:10] // "sk-" + 前 7 位 hex
+	prefix := "sk-"
+	if keyType == "public" {
+		prefix = "pk-"
+	}
+	rawKey := fmt.Sprintf("%s%s", prefix, hex.EncodeToString(rawBytes))
+	keyPrefix := rawKey[:10] // 前缀 + 前 7 位 hex
 
 	h := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(h[:])
@@ -64,6 +85,12 @@ func (l *CreateApiKeyLogic) CreateApiKey(req *types.CreateApiKeyRequest) (resp *
 		KeyPrefix: keyPrefix,
 		Scopes:    string(scopesJSON),
 		Status:    "active",
+		KeyType:   keyType,
+	}
+	if keyType == "public" {
+		apiKey.AllowedOrigins = req.AllowedOrigins
+		kbID := req.KnowledgeBaseID
+		apiKey.KnowledgeBaseID = &kbID
 	}
 
 	if err = l.svcCtx.ApiKeyRepo.Create(l.ctx, apiKey); err != nil {

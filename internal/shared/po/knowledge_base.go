@@ -15,9 +15,10 @@ type KnowledgeBase struct {
 	Status      string    `gorm:"column:status"`              // 状态: active / archived
 	DocCount    int       `gorm:"column:doc_count"`           // 文档数量（冗余计数，异步更新）
 	ChunkCount  int       `gorm:"column:chunk_count"`         // 切块数量（冗余计数，异步更新）
-	Settings    string    `gorm:"column:settings;type:jsonb"` // 知识库配置（chunk_size / overlap / 检索策略等）
-	CreatedAt   time.Time `gorm:"column:created_at"`          // 创建时间
-	UpdatedAt   time.Time `gorm:"column:updated_at"`          // 更新时间
+	Settings          string    `gorm:"column:settings;type:jsonb"`          // 知识库配置（chunk_size / overlap / 检索策略等）
+	SuggestedQuestions string  `gorm:"column:suggested_questions;type:jsonb"` // 引导问答 / 快捷回复列表（JSON 数组）
+	CreatedAt         time.Time `gorm:"column:created_at"`                    // 创建时间
+	UpdatedAt         time.Time `gorm:"column:updated_at"`                    // 更新时间
 }
 
 // TableName 指定 GORM 映射的数据库表名。

@@ -94,6 +94,8 @@ func (l *ExportLogic) ExportCSV(req *ExportReportRequest) ([]byte, string, error
 	_ = w.Write([]string{"估算费用（USD）", fmt.Sprintf("%.6f", ov.EstimatedCost)})
 	_ = w.Write([]string{"AI 解决率 (%)", fmt.Sprintf("%.2f", ov.AIResolveRate)})
 	_ = w.Write([]string{"转人工率 (%)", fmt.Sprintf("%.2f", ov.EscalationRate)})
+	_ = w.Write([]string{"满意度 (%)", fmt.Sprintf("%.2f", ov.SatisfactionRate)})
+	_ = w.Write([]string{"已评分消息数", strconv.FormatInt(ov.RatedCount, 10)})
 	_ = w.Write([]string{})
 
 	// ── 日粒度趋势 ──

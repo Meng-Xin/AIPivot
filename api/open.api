@@ -144,13 +144,87 @@ type (
 	}
 )
 
+// ========== Widget Session（嵌入式 Chat Widget） ==========
+
+type (
+	// WidgetSessionCreateRequest Widget 创建访客会话请求
+	WidgetSessionCreateRequest {
+		VisitorID string `json:"visitorId"`              // 访客标识（前端生成并持久化，建议 UUID v4）
+		Title     string `json:"title,optional"`         // 会话标题（可选，默认 "Widget: <visitorId>"）
+	}
+
+	// WidgetSessionData Widget 会话数据
+	WidgetSessionData {
+		SessionToken       string   `json:"sessionToken"`       // 会话令牌（= conversation UUID，后续请求凭证）
+		ConversationID     int64    `json:"conversationId"`     // 会话 ID
+		VisitorID          string   `json:"visitorId"`          // 访客标识
+		CreatedAt          int64    `json:"createdAt"`          // 创建时间（Unix 秒）
+		SuggestedQuestions []string `json:"suggestedQuestions,optional"` // 引导问答列表（来自绑定的 KB 配置）
+	}
+
+	// WidgetSessionResponse Widget 创建会话响应
+	WidgetSessionResponse {
+		Code      int32             `json:"code"`
+		Msg       string            `json:"msg"`
+		Timestamp int64             `json:"timestamp"`
+		Data      WidgetSessionData `json:"data"`
+	}
+
+	// WidgetMessageSendRequest Widget 发送消息请求（path 中的 sessionToken 定位会话）
+	WidgetMessageSendRequest {
+		SessionToken string `path:"sessionToken"`        // 会话令牌（= conversation UUID）
+		Content      string `json:"content"`             // 用户消息内容
+		ContentType  string `json:"contentType,default=text"` // 内容类型，默认 text
+	}
+
+	// WidgetMessageListRequest Widget 拉取历史消息请求
+	WidgetMessageListRequest {
+		SessionToken string `path:"sessionToken"`        // 会话令牌
+		Page         int    `form:"page,default=1"`      // 页码（从 1 开始）
+		PageSize     int    `form:"pageSize,default=20"` // 每页大小
+	}
+
+	// WidgetMessageItem Widget 消息展示对象
+	WidgetMessageItem {
+		UUID           string   `json:"uuid"`
+		Role           string   `json:"role"`                        // user / assistant / system
+		Content        string   `json:"content"`
+		ContentType    string   `json:"contentType"`
+		TokenCount     int      `json:"tokenCount,omitempty"`        // Token 消耗（仅 assistant）
+		Model          string   `json:"model,omitempty"`             // 模型（仅 assistant）
+		Sources        []string `json:"sources,omitempty"`           // RAG 来源引用
+		Rating         string   `json:"rating,omitempty"`            // "" / "up" / "down"
+		RatingFeedback string   `json:"ratingFeedback,omitempty"`    // 负评文字
+		CreatedAt      int64    `json:"createdAt"`
+	}
+
+	// WidgetMessageFeedbackRequest Widget 提交消息满意度评分
+	WidgetMessageFeedbackRequest {
+		SessionToken string `path:"sessionToken"`                 // 会话令牌
+		MessageID    string `path:"messageId"`                    // 消息 UUID
+		Rating       string `json:"rating"`                       // "up" / "down"
+		Feedback     string `json:"feedback,optional"`            // 负评文字（≤500 字，可选）
+	}
+
+	// WidgetMessageListResponse Widget 历史消息响应
+	WidgetMessageListResponse {
+		Code      int32             `json:"code"`
+		Msg       string            `json:"msg"`
+		Timestamp int64             `json:"timestamp"`
+		Data      []WidgetMessageItem `json:"data"`
+	}
+)
+
 // ========== API Key 管理 ==========
 
 type (
 	// CreateApiKeyRequest 创建 API Key 请求
 	CreateApiKeyRequest {
-		Name   string   `json:"name"`             // 密钥名称
-		Scopes []string `json:"scopes,optional"`  // 权限范围（默认 ["chat"]）
+		Name            string   `json:"name"`                              // 密钥名称
+		Scopes          []string `json:"scopes,optional"`                   // 权限范围（默认 ["chat"]）
+		KeyType         string   `json:"keyType,optional,default=master"`   // 密钥类型: master / public（public 用于 Widget 嵌入）
+		AllowedOrigins  []string `json:"allowedOrigins,optional"`           // 允许的来源域名白名单（仅 public key 生效）
+		KnowledgeBaseID int64    `json:"knowledgeBaseId,optional"`          // 绑定的知识库 ID（仅 public key 生效，限制 RAG 检索范围）
 	}
 
 	// CreateApiKeyData 创建 API Key 返回数据（含原始密钥，仅创建时展示一次）
@@ -219,6 +293,40 @@ service aipivot-api {
 	@doc "Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复"
 	@handler WebhookInbound
 	post /webhook/:webhookId/inbound (WebhookInboundRequest) returns (WebhookInboundResponse)
+}
+
+// Widget Session — API Key（public key）认证
+@server (
+	group:     open
+	prefix:    /api/v1/open
+	tags:      "Widget Session"
+	middleware: ApiKeyMiddleware
+)
+service aipivot-api {
+	@doc "Widget — 创建访客会话（返回 sessionToken 作为后续凭证）"
+	@handler WidgetSessionCreate
+	post /widget/sessions (WidgetSessionCreateRequest) returns (WidgetSessionResponse)
+
+	@doc "Widget — 拉取会话历史消息"
+	@handler WidgetSessionMessageList
+	get /widget/sessions/:sessionToken/messages (WidgetMessageListRequest) returns (WidgetMessageListResponse)
+
+	@doc "Widget — 提交消息满意度评分"
+	@handler WidgetMessageFeedback
+	put /widget/sessions/:sessionToken/messages/:messageId/feedback (WidgetMessageFeedbackRequest) returns (CommResponse)
+}
+
+// Widget Session — 流式发送消息（SSE 手写 Handler，goctl 仅生成路由注册）
+@server (
+	group:     open
+	prefix:    /api/v1/open
+	tags:      "Widget Session"
+	middleware: ApiKeyMiddleware
+)
+service aipivot-api {
+	@doc "Widget — 流式发送消息（SSE，持久化 user + assistant 消息）"
+	@handler WidgetSessionMessageStream
+	post /widget/sessions/:sessionToken/messages/stream (WidgetMessageSendRequest)
 }
 
 // Webhook 管理 + API Key 管理 — JWT 认证

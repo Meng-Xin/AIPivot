@@ -45,6 +45,12 @@ type modelMsgRow struct {
 	TokenCount   int64  `gorm:"column:token_count"`
 }
 
+// ratingRow 满意度聚合行（FILTER 聚合，仅统计已评分 assistant 消息）。
+type ratingRow struct {
+	UpCount   int64 `gorm:"column:up_count"`
+	DownCount int64 `gorm:"column:down_count"`
+}
+
 func (l *AnalyticsOverviewLogic) AnalyticsOverview() (*types.AnalyticsOverviewResponse, error) {
 	tenantID := auth.TenantIDFromContext(l.ctx)
 	if tenantID == 0 {
@@ -132,6 +138,27 @@ func (l *AnalyticsOverviewLogic) AnalyticsOverview() (*types.AnalyticsOverviewRe
 		escalationRate = roundFloat(float64(waitingConvs)/float64(totalConvs)*100, 2)
 	}
 
+	// 满意度聚合：FILTER (WHERE rating=...) 仅统计已评分的 assistant 消息，
+	// 命中 000009 创建的 idx_messages_tenant_rating 部分索引。
+	var rating ratingRow
+	if err := db.Raw(
+		`SELECT
+			COUNT(*) FILTER (WHERE rating = 'up')   AS up_count,
+			COUNT(*) FILTER (WHERE rating = 'down') AS down_count
+		FROM messages
+		WHERE tenant_id = ? AND role = 'assistant' AND rating <> ''`,
+		tenantID,
+	).Scan(&rating).Error; err != nil {
+		l.Logger.Errorf("AnalyticsOverview query rating err: %v", err)
+		return nil, errorx.NewInternalError("查询分析数据失败")
+	}
+
+	ratedTotal := rating.UpCount + rating.DownCount
+	var satisfactionRate float64
+	if ratedTotal > 0 {
+		satisfactionRate = roundFloat(float64(rating.UpCount)/float64(ratedTotal)*100, 2)
+	}
+
 	return &types.AnalyticsOverviewResponse{
 		Code:      0,
 		Msg:       "OK",
@@ -144,6 +171,8 @@ func (l *AnalyticsOverviewLogic) AnalyticsOverview() (*types.AnalyticsOverviewRe
 			EstimatedCost:       roundFloat(totalCost, 6),
 			AIResolveRate:       resolveRate,
 			EscalationRate:      escalationRate,
+			SatisfactionRate:    satisfactionRate,
+			RatedCount:          ratedTotal,
 			ByStatus:            byStatus,
 			ByChannel:           byChannel,
 			ModelUsage:          modelUsage,

@@ -164,16 +164,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: chat.SendMessageHandler(serverCtx),
 				},
 				{
-					// 发送消息（SSE 流式模式）
-					Method:  http.MethodPost,
-					Path:    "/conversations/:convId/messages/stream",
-					Handler: chat.SendMessageStreamHandler(serverCtx),
-				},
-				{
 					// 获取消息历史
 					Method:  http.MethodGet,
 					Path:    "/conversations/:convId/messages",
 					Handler: chat.ListMessageHandler(serverCtx),
+				},
+				{
+					// 发送消息（SSE 流式模式）
+					Method:  http.MethodPost,
+					Path:    "/conversations/:convId/messages/stream",
+					Handler: chat.SendMessageStreamHandler(serverCtx),
 				},
 				{
 					// 获取会话详情
@@ -359,6 +359,48 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: open.WebhookInboundHandler(serverCtx),
 			},
 		},
+		rest.WithPrefix("/api/v1/open"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.ApiKeyMiddleware},
+			[]rest.Route{
+				{
+					// Widget — 创建访客会话（返回 sessionToken 作为后续凭证）
+					Method:  http.MethodPost,
+					Path:    "/widget/sessions",
+					Handler: open.WidgetSessionCreateHandler(serverCtx),
+				},
+				{
+					// Widget — 拉取会话历史消息
+					Method:  http.MethodGet,
+					Path:    "/widget/sessions/:sessionToken/messages",
+					Handler: open.WidgetSessionMessageListHandler(serverCtx),
+				},
+				{
+					// Widget — 提交消息满意度评分
+					Method:  http.MethodPut,
+					Path:    "/widget/sessions/:sessionToken/messages/:messageId/feedback",
+					Handler: open.WidgetMessageFeedbackHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/open"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.ApiKeyMiddleware},
+			[]rest.Route{
+				{
+					// Widget — 流式发送消息（SSE，持久化 user + assistant 消息）
+					Method:  http.MethodPost,
+					Path:    "/widget/sessions/:sessionToken/messages/stream",
+					Handler: open.WidgetSessionMessageStreamHandler(serverCtx),
+				},
+			}...,
+		),
 		rest.WithPrefix("/api/v1/open"),
 	)
 

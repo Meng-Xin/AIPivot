@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"aipivot/internal/config"
 	"aipivot/internal/infra"
@@ -73,10 +74,11 @@ type ServiceContext struct {
 	WebhookDelivery *webhook.DeliveryService
 
 	// LLM & RAG
-	LLMClient    *llm.Client
-	RAGService   *rag.Service
-	AsynqClient  *asynq.Client
-	TokenLimiter *ratelimit.TokenLimiter // 每租户日 Token 配额限流
+	LLMClient         *llm.Client
+	RAGService        *rag.Service
+	AsynqClient       *asynq.Client
+	TokenLimiter      *ratelimit.TokenLimiter       // 每租户日 Token 配额限流
+	WidgetRateLimiter *ratelimit.SlidingWindowLimiter // Widget 访客维度滑窗限流
 }
 
 func NewServiceContext(c config.Config) (*ServiceContext, error) {
@@ -154,6 +156,13 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 	// TokenLimiter（Redis 令牌桶，限制每租户日 token 用量）
 	tokenLimiter := ratelimit.NewTokenLimiter(redisClient, c.RateLimit.DailyTokenLimit)
 
+	// WidgetRateLimiter（Redis ZSET 滑动窗口，限制访客维度请求频率）
+	widgetWindow := time.Minute
+	if c.RateLimit.WidgetVisitorWindowSec > 0 {
+		widgetWindow = time.Duration(c.RateLimit.WidgetVisitorWindowSec) * time.Second
+	}
+	widgetLimiter := ratelimit.NewSlidingWindowLimiter(redisClient, widgetWindow, c.RateLimit.WidgetVisitorLimit)
+
 	// Asynq Client（用于提交异步任务）
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:     c.Redis.Addr,
@@ -195,10 +204,11 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		WebhookDelivery: webhook.NewDeliveryService(wbRepo),
 
 		// LLM & RAG
-		LLMClient:    llmClient,
-		RAGService:   ragService,
-		AsynqClient:  asynqClient,
-		TokenLimiter: tokenLimiter,
+		LLMClient:         llmClient,
+		RAGService:        ragService,
+		AsynqClient:       asynqClient,
+		TokenLimiter:      tokenLimiter,
+		WidgetRateLimiter: widgetLimiter,
 
 		HealthChecks: []infra.DependencyCheck{
 			infra.CheckPostgres(db),

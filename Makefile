@@ -1,4 +1,4 @@
-.PHONY: gen api build test tidy clean swagger web-dev web-install web-build web-preview regen
+.PHONY: gen api build test tidy clean swagger web-dev web-install web-build web-preview regen widget-install widget-dev widget-build widget-preview
 
 # GORM Gen — 根据 PO 模型生成类型安全的 Query 代码
 gen:
@@ -52,3 +52,21 @@ web-build:
 # 预览前端生产构建
 web-preview:
 	cd web && npm run preview
+
+# ==================== Widget SDK（widget/）====================
+
+# 安装 Widget SDK 依赖
+widget-install:
+	cd widget && npm install
+
+# 启动 Widget 开发服务器（Vite，端口 5174，本地调试悬浮按钮）
+widget-dev:
+	cd widget && npm run dev
+
+# 构建 Widget SDK 单文件（dist/aipivot-widget.js，挂载到 window.AIPivotWidget）
+widget-build:
+	cd widget && npm run build
+
+# 预览 Widget 生产构建
+widget-preview:
+	cd widget && npm run preview
