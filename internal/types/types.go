@@ -276,6 +276,13 @@ type FlowResponse struct {
 	Data      ShowFlow `json:"data"`
 }
 
+type FlowRunListResponse struct {
+	Code      int32         `json:"code"`
+	Msg       string        `json:"msg"`
+	Timestamp int64         `json:"timestamp"`
+	Data      []ShowFlowRun `json:"data"`
+}
+
 type GetConversationRequest struct {
 	ID int64 `path:"id"`
 }
@@ -349,6 +356,12 @@ type ListDocumentRequest struct {
 	Page            int    `form:"page,range=[1:]"`
 	PageSize        int    `form:"pageSize,range=[1:50]"`
 	Status          string `form:"status,optional"`
+}
+
+type ListFlowRunsRequest struct {
+	ID     int64 `path:"id"`
+	Limit  int   `form:"limit,optional"`
+	Offset int   `form:"offset,optional"`
 }
 
 type ListKnowledgeBaseRequest struct {
@@ -438,6 +451,12 @@ type RevokeApiKeyRequest struct {
 	ID int64 `path:"id"`
 }
 
+type RunFlowRequest struct {
+	ID        int64             `path:"id"`
+	Message   string            `json:"message"`            // 测试消息（≤ 2000 字符）
+	Variables map[string]string `json:"variables,optional"` // 测试变量，供 condition 表达式 / prompt 模板引用
+}
+
 type SendMessageRequest struct {
 	ConversationID int64  `path:"convId"`                   // 会话 ID
 	Content        string `json:"content"`                  // 消息内容
@@ -509,6 +528,22 @@ type ShowFlow struct {
 	Version     int    `json:"version"`
 	CreatedAt   int64  `json:"createdAt"`
 	UpdatedAt   int64  `json:"updatedAt"`
+}
+
+type ShowFlowRun struct {
+	ID          int64  `json:"id"`
+	UUID        string `json:"uuid"`
+	FlowID      int64  `json:"flowId"`
+	FlowVersion int    `json:"flowVersion"`
+	Status      string `json:"status"`
+	TriggerType string `json:"triggerType"`
+	Input       string `json:"input"`       // 执行输入 JSON 字符串
+	Output      string `json:"output"`      // 最终输出
+	NodeResults string `json:"nodeResults"` // 节点结果快照 JSON 数组字符串
+	Error       string `json:"error"`
+	TotalMs     int    `json:"totalMs"`
+	TokenCount  int    `json:"tokenCount"`
+	CreatedAt   int64  `json:"createdAt"`
 }
 
 type ShowKnowledgeBase struct {

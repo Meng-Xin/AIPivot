@@ -18,6 +18,401 @@
   "host": "localhost:8080",
   "basePath": "/",
   "paths": {
+    "/api/v1/admin/tenant": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "获取当前租户信息",
+        "operationId": "adminGetTenant",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/GetTenantResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "更新当前租户设置",
+        "operationId": "adminUpdateTenant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/UpdateTenantResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "获取租户用户列表",
+        "operationId": "adminListUsers",
+        "parameters": [
+          {
+            "minimum": 1,
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ListAdminUsersResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "创建租户用户",
+        "operationId": "adminCreateUser",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateAdminUserRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CreateAdminUserResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "更新租户用户",
+        "operationId": "adminUpdateUser",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateAdminUserRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CreateAdminUserResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "管理后台"
+        ],
+        "summary": "删除租户用户",
+        "operationId": "adminDeleteUser",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/daily": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "数据分析"
+        ],
+        "summary": "获取日粒度对话统计趋势（最近 N 天）",
+        "operationId": "analyticsAnalyticsDaily",
+        "parameters": [
+          {
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer",
+            "default": 7,
+            "example": 7,
+            "description": "统计最近 N 天（1-90）",
+            "name": "days",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/AnalyticsDailyResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/export": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "数据分析"
+        ],
+        "summary": "导出 SLA 报表 CSV",
+        "operationId": "analyticsExportReport",
+        "parameters": [
+          {
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer",
+            "default": 30,
+            "example": 30,
+            "description": "统计最近 N 天（1-90）",
+            "name": "days",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/overview": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "数据分析"
+        ],
+        "summary": "获取对话分析概览（会话数/消息数/Token/费用/解决率/渠道分布）",
+        "operationId": "analyticsAnalyticsOverview",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/AnalyticsOverviewResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-keys": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "API Key 管理"
+        ],
+        "summary": "获取 API Key 列表",
+        "operationId": "apikeyListApiKey",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ApiKeyListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "API Key 管理"
+        ],
+        "summary": "创建 API Key",
+        "operationId": "apikeyCreateApiKey",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateApiKeyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CreateApiKeyResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-keys/{id}/revoke": {
+      "put": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "API Key 管理"
+        ],
+        "summary": "吊销 API Key",
+        "operationId": "apikeyRevokeApiKey",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "consumes": [
@@ -257,6 +652,47 @@
         }
       }
     },
+    "/api/v1/conversations/{convId}/messages/stream": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "发送消息（SSE 流式模式）",
+        "operationId": "chatSendMessageStream",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "会话 ID",
+            "name": "convId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SendMessageRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {}
+          }
+        }
+      }
+    },
     "/api/v1/conversations/{id}": {
       "get": {
         "produces": [
@@ -317,6 +753,291 @@
             "description": "",
             "schema": {
               "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/escalate": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "对话管理"
+        ],
+        "summary": "转接人工客服",
+        "operationId": "chatEscalateConversation",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EscalateConversationRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flows": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "获取 Flow 列表",
+        "operationId": "flowsListFlows",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/FlowListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "创建 Flow",
+        "operationId": "flowsCreateFlow",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateFlowRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/FlowResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flows/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "获取 Flow 详情",
+        "operationId": "flowsGetFlow",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/FlowResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "更新 Flow",
+        "operationId": "flowsUpdateFlow",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateFlowRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/FlowResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "删除 Flow",
+        "operationId": "flowsDeleteFlow",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flows/{id}/run": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "试运行 Flow（SSE 流式返回每个节点执行过程）",
+        "operationId": "flowsRunFlow",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RunFlowRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {}
+          }
+        }
+      }
+    },
+    "/api/v1/flows/{id}/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "可视化 Flow"
+        ],
+        "summary": "获取 Flow 执行历史",
+        "operationId": "flowsListFlowRuns",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "name": "limit",
+            "in": "query",
+            "allowEmptyValue": true
+          },
+          {
+            "type": "integer",
+            "name": "offset",
+            "in": "query",
+            "allowEmptyValue": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/FlowRunListResponse"
             }
           }
         }
@@ -636,6 +1357,605 @@
         }
       }
     },
+    "/api/v1/models": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "模型管理"
+        ],
+        "summary": "获取可用模型列表",
+        "operationId": "modelsListModels",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ModelListResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/open/chat/completions": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Open API"
+        ],
+        "summary": "Chat Completion（同步）— OpenAI 兼容格式，通过 API Key 认证",
+        "operationId": "openChatCompletion",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChatCompletionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ChatCompletionResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/open/webhook/{webhookId}/inbound": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 入站"
+        ],
+        "summary": "Webhook 入站消息 — 接收外部平台推送的用户消息并返回 AI 回复",
+        "operationId": "openWebhookInbound",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "Webhook 配置 ID",
+            "name": "webhookId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WebhookInboundRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WebhookInboundResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/open/widget/sessions": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Widget Session"
+        ],
+        "summary": "Widget — 创建访客会话（返回 sessionToken 作为后续凭证）",
+        "operationId": "openWidgetSessionCreate",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WidgetSessionCreateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WidgetSessionResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/open/widget/sessions/{sessionToken}/messages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Widget Session"
+        ],
+        "summary": "Widget — 拉取会话历史消息",
+        "operationId": "openWidgetSessionMessageList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "会话令牌",
+            "name": "sessionToken",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "description": "页码（从 1 开始）",
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "description": "每页大小",
+            "name": "pageSize",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WidgetMessageListResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/open/widget/sessions/{sessionToken}/messages/stream": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Widget Session"
+        ],
+        "summary": "Widget — 流式发送消息（SSE，持久化 user + assistant 消息）",
+        "operationId": "openWidgetSessionMessageStream",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "会话令牌（= conversation UUID）",
+            "name": "sessionToken",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WidgetMessageSendRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {}
+          }
+        }
+      }
+    },
+    "/api/v1/open/widget/sessions/{sessionToken}/messages/{messageId}/feedback": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Widget Session"
+        ],
+        "summary": "Widget — 提交消息满意度评分",
+        "operationId": "openWidgetMessageFeedback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "会话令牌",
+            "name": "sessionToken",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "消息 UUID",
+            "name": "messageId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WidgetMessageFeedbackRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/skills": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "自定义工具"
+        ],
+        "summary": "获取工具列表",
+        "operationId": "skillsListSkills",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SkillListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "自定义工具"
+        ],
+        "summary": "创建自定义工具",
+        "operationId": "skillsCreateSkill",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateSkillRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SkillResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/skills/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "自定义工具"
+        ],
+        "summary": "获取工具详情",
+        "operationId": "skillsGetSkill",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SkillResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "自定义工具"
+        ],
+        "summary": "更新工具",
+        "operationId": "skillsUpdateSkill",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateSkillRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SkillResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "自定义工具"
+        ],
+        "summary": "删除工具",
+        "operationId": "skillsDeleteSkill",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 管理"
+        ],
+        "summary": "获取 Webhook 列表",
+        "operationId": "webhookListWebhook",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WebhookListResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 管理"
+        ],
+        "summary": "创建 Webhook",
+        "operationId": "webhookCreateWebhook",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateWebhookRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WebhookDetailResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 管理"
+        ],
+        "summary": "获取 Webhook 详情",
+        "operationId": "webhookGetWebhook",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WebhookDetailResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 管理"
+        ],
+        "summary": "更新 Webhook",
+        "operationId": "webhookUpdateWebhook",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateWebhookRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/WebhookDetailResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Webhook 管理"
+        ],
+        "summary": "删除 Webhook",
+        "operationId": "webhookDeleteWebhook",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/CommResponse"
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "produces": [
@@ -728,6 +2048,415 @@
     }
   },
   "definitions": {
+    "AdminUsersData": {
+      "type": "object",
+      "required": [
+        "total",
+        "list"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowAdminUser"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "AnalyticsDailyRequest": {
+      "type": "object"
+    },
+    "AnalyticsDailyResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DailyStatPoint"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "AnalyticsExportRequest": {
+      "type": "object"
+    },
+    "AnalyticsOverviewData": {
+      "type": "object",
+      "required": [
+        "totalConversations",
+        "activeConversations",
+        "totalMessages",
+        "totalTokens",
+        "estimatedCost",
+        "aiResolveRate",
+        "escalationRate",
+        "satisfactionRate",
+        "ratedCount",
+        "byStatus",
+        "byChannel",
+        "modelUsage"
+      ],
+      "properties": {
+        "activeConversations": {
+          "description": "当前活跃会话数",
+          "type": "integer"
+        },
+        "aiResolveRate": {
+          "description": "AI 解决率 %（closed/total）",
+          "type": "number"
+        },
+        "byChannel": {
+          "description": "各渠道会话分布",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChannelStat"
+          }
+        },
+        "byStatus": {
+          "description": "各状态会话分布",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConvStatusStat"
+          }
+        },
+        "escalationRate": {
+          "description": "转人工率 %（waiting_human/total）",
+          "type": "number"
+        },
+        "estimatedCost": {
+          "description": "估算总费用（美元）",
+          "type": "number"
+        },
+        "modelUsage": {
+          "description": "各模型使用详情",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModelUsageStat"
+          }
+        },
+        "ratedCount": {
+          "description": "已评分消息数（参考分母）",
+          "type": "integer"
+        },
+        "satisfactionRate": {
+          "description": "满意度 %（up / (up + down)）",
+          "type": "number"
+        },
+        "totalConversations": {
+          "description": "会话总数",
+          "type": "integer"
+        },
+        "totalMessages": {
+          "description": "消息总数",
+          "type": "integer"
+        },
+        "totalTokens": {
+          "description": "总 token 消耗",
+          "type": "integer"
+        }
+      }
+    },
+    "AnalyticsOverviewResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "totalConversations",
+            "activeConversations",
+            "totalMessages",
+            "totalTokens",
+            "estimatedCost",
+            "aiResolveRate",
+            "escalationRate",
+            "satisfactionRate",
+            "ratedCount",
+            "byStatus",
+            "byChannel",
+            "modelUsage"
+          ],
+          "properties": {
+            "activeConversations": {
+              "description": "当前活跃会话数",
+              "type": "integer"
+            },
+            "aiResolveRate": {
+              "description": "AI 解决率 %（closed/total）",
+              "type": "number"
+            },
+            "byChannel": {
+              "description": "各渠道会话分布",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ChannelStat"
+              }
+            },
+            "byStatus": {
+              "description": "各状态会话分布",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ConvStatusStat"
+              }
+            },
+            "escalationRate": {
+              "description": "转人工率 %（waiting_human/total）",
+              "type": "number"
+            },
+            "estimatedCost": {
+              "description": "估算总费用（美元）",
+              "type": "number"
+            },
+            "modelUsage": {
+              "description": "各模型使用详情",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ModelUsageStat"
+              }
+            },
+            "ratedCount": {
+              "description": "已评分消息数（参考分母）",
+              "type": "integer"
+            },
+            "satisfactionRate": {
+              "description": "满意度 %（up / (up + down)）",
+              "type": "number"
+            },
+            "totalConversations": {
+              "description": "会话总数",
+              "type": "integer"
+            },
+            "totalMessages": {
+              "description": "消息总数",
+              "type": "integer"
+            },
+            "totalTokens": {
+              "description": "总 token 消耗",
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/AnalyticsOverviewData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ApiKeyListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowApiKey"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ChannelStat": {
+      "type": "object",
+      "required": [
+        "channel",
+        "count"
+      ],
+      "properties": {
+        "channel": {
+          "description": "接入渠道: web / api / webhook",
+          "type": "string"
+        },
+        "count": {
+          "description": "数量",
+          "type": "integer"
+        }
+      }
+    },
+    "ChatCompletionChoice": {
+      "type": "object",
+      "required": [
+        "index",
+        "message",
+        "finishReason"
+      ],
+      "properties": {
+        "finishReason": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "object",
+          "required": [
+            "role",
+            "content"
+          ],
+          "properties": {
+            "content": {
+              "description": "消息内容",
+              "type": "string"
+            },
+            "role": {
+              "description": "角色: system / user / assistant",
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/OpenChatMessage"
+        }
+      }
+    },
+    "ChatCompletionRequest": {
+      "type": "object",
+      "required": [
+        "messages"
+      ],
+      "properties": {
+        "knowledgeBaseId": {
+          "description": "关联知识库 ID（启用 RAG）",
+          "type": "integer"
+        },
+        "maxTokens": {
+          "description": "最大生成 token 数",
+          "type": "integer"
+        },
+        "messages": {
+          "description": "对话消息列表",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OpenChatMessage"
+          }
+        },
+        "model": {
+          "description": "模型标识（空则用系统默认）",
+          "type": "string"
+        },
+        "stream": {
+          "description": "是否流式返回（true 时走 SSE）",
+          "type": "boolean"
+        },
+        "temperature": {
+          "description": "温度参数 [0,2]",
+          "type": "number"
+        }
+      }
+    },
+    "ChatCompletionResponse": {
+      "type": "object",
+      "required": [
+        "id",
+        "object",
+        "model",
+        "choices",
+        "usage",
+        "sources"
+      ],
+      "properties": {
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChatCompletionChoice"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "sources": {
+          "description": "RAG 命中的知识来源",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "usage": {
+          "type": "object",
+          "required": [
+            "promptTokens",
+            "completionTokens",
+            "totalTokens"
+          ],
+          "properties": {
+            "completionTokens": {
+              "type": "integer"
+            },
+            "promptTokens": {
+              "type": "integer"
+            },
+            "totalTokens": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/ChatCompletionUsage"
+        }
+      }
+    },
+    "ChatCompletionUsage": {
+      "type": "object",
+      "required": [
+        "promptTokens",
+        "completionTokens",
+        "totalTokens"
+      ],
+      "properties": {
+        "completionTokens": {
+          "type": "integer"
+        },
+        "promptTokens": {
+          "type": "integer"
+        },
+        "totalTokens": {
+          "type": "integer"
+        }
+      }
+    },
     "CloseConversationRequest": {
       "type": "object"
     },
@@ -756,6 +2485,23 @@
         }
       }
     },
+    "ConvStatusStat": {
+      "type": "object",
+      "required": [
+        "status",
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "description": "数量",
+          "type": "integer"
+        },
+        "status": {
+          "description": "会话状态: active / waiting_human / closed",
+          "type": "string"
+        }
+      }
+    },
     "ConversationDetailResponse": {
       "type": "object",
       "required": [
@@ -775,6 +2521,7 @@
             "uuid",
             "knowledgeBaseId",
             "title",
+            "model",
             "status",
             "channel",
             "messageCount",
@@ -796,6 +2543,9 @@
             },
             "messageCount": {
               "type": "integer"
+            },
+            "model": {
+              "type": "string"
             },
             "status": {
               "type": "string"
@@ -877,15 +2627,252 @@
         }
       }
     },
+    "CreateAdminUserRequest": {
+      "type": "object",
+      "required": [
+        "email",
+        "password"
+      ],
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "nickName": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "CreateAdminUserResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "email",
+            "nickName",
+            "role",
+            "status",
+            "lastLogin",
+            "createdAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "type": "integer"
+            },
+            "email": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "lastLogin": {
+              "type": "integer"
+            },
+            "nickName": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowAdminUser"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "CreateApiKeyData": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "key",
+        "keyPrefix",
+        "scopes"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "key": {
+          "description": "原始 API Key（仅创建时返回）",
+          "type": "string"
+        },
+        "keyPrefix": {
+          "description": "密钥前缀",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "CreateApiKeyRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "allowedOrigins": {
+          "description": "允许的来源域名白名单（仅 public key 生效）",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keyType": {
+          "description": "密钥类型: master / public（public 用于 Widget 嵌入）",
+          "type": "string",
+          "default": "master",
+          "example": "master"
+        },
+        "knowledgeBaseId": {
+          "description": "绑定的知识库 ID（仅 public key 生效，限制 RAG 检索范围）",
+          "type": "integer"
+        },
+        "name": {
+          "description": "密钥名称",
+          "type": "string"
+        },
+        "scopes": {
+          "description": "权限范围（默认 [\"chat\"]）",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "CreateApiKeyResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "name",
+            "key",
+            "keyPrefix",
+            "scopes"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "key": {
+              "description": "原始 API Key（仅创建时返回）",
+              "type": "string"
+            },
+            "keyPrefix": {
+              "description": "密钥前缀",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "$ref": "#/definitions/CreateApiKeyData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
     "CreateConversationRequest": {
       "type": "object",
+      "required": [
+        "channel"
+      ],
       "properties": {
+        "channel": {
+          "description": "接入渠道: web / api / webhook",
+          "type": "string",
+          "default": "web",
+          "example": "web"
+        },
         "knowledgeBaseId": {
           "description": "关联知识库 ID",
           "type": "integer"
         },
+        "model": {
+          "description": "指定聊天模型（空则用默认模型）",
+          "type": "string"
+        },
         "title": {
           "description": "会话标题",
+          "type": "string"
+        }
+      }
+    },
+    "CreateFlowRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "definition": {
+          "description": "Flow definition JSON 字符串",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "description": "draft / published / archived",
           "type": "string"
         }
       }
@@ -909,13 +2896,147 @@
         "name": {
           "description": "知识库名称",
           "type": "string"
+        },
+        "suggestedQuestions": {
+          "description": "引导问答列表（最多 6 条，每条 ≤ 100 字）",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
+    },
+    "CreateSkillRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "parameters",
+        "endpoint"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "headers": {
+          "description": "JSON 对象字符串，如 {\"Authorization\":\"Bearer xxx\"}",
+          "type": "string"
+        },
+        "method": {
+          "description": "GET / POST，默认 POST",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "description": "JSON Schema 字符串",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "description": "0 时使用默认值 5000",
+          "type": "integer"
+        }
+      }
+    },
+    "CreateWebhookRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "url",
+        "channelType",
+        "retryCount",
+        "timeoutMs"
+      ],
+      "properties": {
+        "channelType": {
+          "description": "渠道类型",
+          "type": "string",
+          "default": "webhook",
+          "example": "webhook"
+        },
+        "events": {
+          "description": "订阅事件类型列表",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "Webhook 名称",
+          "type": "string"
+        },
+        "retryCount": {
+          "description": "重试次数",
+          "type": "integer",
+          "default": 3,
+          "example": 3
+        },
+        "secret": {
+          "description": "签名密钥（可选）",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "description": "超时毫秒",
+          "type": "integer",
+          "default": 5000,
+          "example": 5000
+        },
+        "url": {
+          "description": "回调 URL",
+          "type": "string"
+        }
+      }
+    },
+    "DailyStatPoint": {
+      "type": "object",
+      "required": [
+        "date",
+        "conversationCount",
+        "messageCount",
+        "tokenCount"
+      ],
+      "properties": {
+        "conversationCount": {
+          "description": "新建会话数",
+          "type": "integer"
+        },
+        "date": {
+          "description": "日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "messageCount": {
+          "description": "AI 回复消息数",
+          "type": "integer"
+        },
+        "tokenCount": {
+          "description": "token 消耗数",
+          "type": "integer"
+        }
+      }
+    },
+    "DeleteAdminUserRequest": {
+      "type": "object"
     },
     "DeleteDocumentRequest": {
       "type": "object"
     },
+    "DeleteFlowRequest": {
+      "type": "object"
+    },
     "DeleteKnowledgeBaseRequest": {
+      "type": "object"
+    },
+    "DeleteSkillRequest": {
+      "type": "object"
+    },
+    "DeleteWebhookRequest": {
       "type": "object"
     },
     "DependencyStatus": {
@@ -1067,10 +3188,205 @@
         }
       }
     },
+    "EscalateConversationRequest": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "转接原因（可选）",
+          "type": "string"
+        }
+      }
+    },
+    "FlowListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowFlow"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "FlowResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "description",
+            "definition",
+            "status",
+            "version",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "type": "integer"
+            },
+            "definition": {
+              "description": "Flow definition JSON 字符串",
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            },
+            "version": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/ShowFlow"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "FlowRunListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowFlowRun"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
     "GetConversationRequest": {
       "type": "object"
     },
+    "GetFlowRequest": {
+      "type": "object"
+    },
     "GetKnowledgeBaseRequest": {
+      "type": "object"
+    },
+    "GetSkillRequest": {
+      "type": "object"
+    },
+    "GetTenantResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "slug",
+            "plan",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowTenant"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "GetWebhookRequest": {
       "type": "object"
     },
     "HealthResponse": {
@@ -1110,6 +3426,7 @@
             "status",
             "docCount",
             "chunkCount",
+            "suggestedQuestions",
             "createdAt",
             "updatedAt"
           ],
@@ -1149,6 +3466,13 @@
             "status": {
               "description": "状态",
               "type": "string"
+            },
+            "suggestedQuestions": {
+              "description": "引导问答列表",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "updatedAt": {
               "description": "更新时间",
@@ -1230,10 +3554,55 @@
         }
       }
     },
+    "ListAdminUsersRequest": {
+      "type": "object"
+    },
+    "ListAdminUsersResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "total",
+            "list"
+          ],
+          "properties": {
+            "list": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowAdminUser"
+              }
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/AdminUsersData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
     "ListConversationRequest": {
       "type": "object"
     },
     "ListDocumentRequest": {
+      "type": "object"
+    },
+    "ListFlowRunsRequest": {
       "type": "object"
     },
     "ListKnowledgeBaseRequest": {
@@ -1528,6 +3897,117 @@
         }
       }
     },
+    "ModelListData": {
+      "type": "object",
+      "required": [
+        "chatModels",
+        "embeddingModels"
+      ],
+      "properties": {
+        "chatModels": {
+          "description": "可用聊天模型",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowModel"
+          }
+        },
+        "embeddingModels": {
+          "description": "可用 Embedding 模型",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowModel"
+          }
+        }
+      }
+    },
+    "ModelListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "chatModels",
+            "embeddingModels"
+          ],
+          "properties": {
+            "chatModels": {
+              "description": "可用聊天模型",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowModel"
+              }
+            },
+            "embeddingModels": {
+              "description": "可用 Embedding 模型",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShowModel"
+              }
+            }
+          },
+          "$ref": "#/definitions/ModelListData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "ModelUsageStat": {
+      "type": "object",
+      "required": [
+        "model",
+        "messageCount",
+        "tokenCount",
+        "estimatedCost"
+      ],
+      "properties": {
+        "estimatedCost": {
+          "description": "估算费用（美元）",
+          "type": "number"
+        },
+        "messageCount": {
+          "description": "AI 回复消息数",
+          "type": "integer"
+        },
+        "model": {
+          "description": "模型标识",
+          "type": "string"
+        },
+        "tokenCount": {
+          "description": "总 token 数",
+          "type": "integer"
+        }
+      }
+    },
+    "OpenChatMessage": {
+      "type": "object",
+      "required": [
+        "role",
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "description": "消息内容",
+          "type": "string"
+        },
+        "role": {
+          "description": "角色: system / user / assistant",
+          "type": "string"
+        }
+      }
+    },
     "PingResponse": {
       "type": "object",
       "required": [
@@ -1596,6 +4076,28 @@
           "description": "注册密码",
           "type": "string",
           "example": "P@ssw0rd123"
+        }
+      }
+    },
+    "RevokeApiKeyRequest": {
+      "type": "object"
+    },
+    "RunFlowRequest": {
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "description": "测试消息（≤ 2000 字符）",
+          "type": "string"
+        },
+        "variables": {
+          "description": "测试变量，供 condition 表达式 / prompt 模板引用",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },
@@ -1689,6 +4191,87 @@
         }
       }
     },
+    "ShowAdminUser": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "email",
+        "nickName",
+        "role",
+        "status",
+        "lastLogin",
+        "createdAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "email": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "lastLogin": {
+          "type": "integer"
+        },
+        "nickName": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "ShowApiKey": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "keyPrefix",
+        "scopes",
+        "status",
+        "lastUsed",
+        "expiresAt",
+        "createdAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "keyPrefix": {
+          "type": "string"
+        },
+        "lastUsed": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "ShowConversation": {
       "type": "object",
       "required": [
@@ -1696,6 +4279,7 @@
         "uuid",
         "knowledgeBaseId",
         "title",
+        "model",
         "status",
         "channel",
         "messageCount",
@@ -1717,6 +4301,9 @@
         },
         "messageCount": {
           "type": "integer"
+        },
+        "model": {
+          "type": "string"
         },
         "status": {
           "type": "string"
@@ -1779,6 +4366,112 @@
         }
       }
     },
+    "ShowFlow": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "name",
+        "description",
+        "definition",
+        "status",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "definition": {
+          "description": "Flow definition JSON 字符串",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      }
+    },
+    "ShowFlowRun": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "flowId",
+        "flowVersion",
+        "status",
+        "triggerType",
+        "input",
+        "output",
+        "nodeResults",
+        "error",
+        "totalMs",
+        "tokenCount",
+        "createdAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "flowId": {
+          "type": "integer"
+        },
+        "flowVersion": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "input": {
+          "description": "执行输入 JSON 字符串",
+          "type": "string"
+        },
+        "nodeResults": {
+          "description": "节点结果快照 JSON 数组字符串",
+          "type": "string"
+        },
+        "output": {
+          "description": "最终输出",
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tokenCount": {
+          "type": "integer"
+        },
+        "totalMs": {
+          "type": "integer"
+        },
+        "triggerType": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
     "ShowKnowledgeBase": {
       "type": "object",
       "required": [
@@ -1791,6 +4484,7 @@
         "status",
         "docCount",
         "chunkCount",
+        "suggestedQuestions",
         "createdAt",
         "updatedAt"
       ],
@@ -1830,6 +4524,13 @@
         "status": {
           "description": "状态",
           "type": "string"
+        },
+        "suggestedQuestions": {
+          "description": "引导问答列表",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "updatedAt": {
           "description": "更新时间",
@@ -1884,6 +4585,150 @@
           }
         },
         "tokenCount": {
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "ShowModel": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "provider",
+        "maxTokens",
+        "isDefault",
+        "available",
+        "status",
+        "error"
+      ],
+      "properties": {
+        "available": {
+          "description": "当前网关是否可用",
+          "type": "boolean"
+        },
+        "error": {
+          "description": "不可用原因",
+          "type": "string"
+        },
+        "id": {
+          "description": "模型标识（如 gpt-4o）",
+          "type": "string"
+        },
+        "isDefault": {
+          "description": "是否为默认模型",
+          "type": "boolean"
+        },
+        "maxTokens": {
+          "description": "最大 context 窗口",
+          "type": "integer"
+        },
+        "name": {
+          "description": "展示名称",
+          "type": "string"
+        },
+        "provider": {
+          "description": "供应商",
+          "type": "string"
+        },
+        "status": {
+          "description": "available / unavailable",
+          "type": "string"
+        },
+        "type": {
+          "description": "类型: chat / embedding",
+          "type": "string"
+        }
+      }
+    },
+    "ShowSkill": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "parameters",
+        "endpoint",
+        "method",
+        "headers",
+        "timeoutMs",
+        "enabled",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "headers": {
+          "description": "JSON 对象字符串",
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "method": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "description": "JSON Schema 字符串",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "ShowTenant": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "name",
+        "slug",
+        "plan",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "updatedAt": {
           "type": "integer"
         },
         "uuid": {
@@ -1960,6 +4805,197 @@
         }
       }
     },
+    "ShowWebhook": {
+      "type": "object",
+      "required": [
+        "id",
+        "uuid",
+        "name",
+        "url",
+        "events",
+        "channelType",
+        "status",
+        "retryCount",
+        "timeoutMs",
+        "lastError",
+        "lastTrigger",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "channelType": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "integer"
+        },
+        "lastError": {
+          "type": "string"
+        },
+        "lastTrigger": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "retryCount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "SkillListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowSkill"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "SkillResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "name",
+            "description",
+            "parameters",
+            "endpoint",
+            "method",
+            "headers",
+            "timeoutMs",
+            "enabled",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "type": "integer"
+            },
+            "description": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "endpoint": {
+              "type": "string"
+            },
+            "headers": {
+              "description": "JSON 对象字符串",
+              "type": "string"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "method": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "parameters": {
+              "description": "JSON Schema 字符串",
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "integer"
+            },
+            "updatedAt": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/definitions/ShowSkill"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "UpdateAdminUserRequest": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "UpdateFlowRequest": {
+      "type": "object",
+      "properties": {
+        "definition": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "description": "draft / published / archived",
+          "type": "string"
+        }
+      }
+    },
     "UpdateKnowledgeBaseRequest": {
       "type": "object",
       "properties": {
@@ -1970,14 +5006,547 @@
         "name": {
           "description": "知识库名称",
           "type": "string"
+        },
+        "suggestedQuestions": {
+          "description": "引导问答列表",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "UpdateSkillRequest": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      }
+    },
+    "UpdateTenantRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        }
+      }
+    },
+    "UpdateTenantResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "slug",
+            "plan",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "createdAt": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowTenant"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "UpdateWebhookRequest": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "retryCount": {
+          "type": "integer"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "status": {
+          "description": "active / disabled",
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
         }
       }
     },
     "UploadDocumentRequest": {
       "type": "object"
+    },
+    "WebhookDetailResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "id",
+            "uuid",
+            "name",
+            "url",
+            "events",
+            "channelType",
+            "status",
+            "retryCount",
+            "timeoutMs",
+            "lastError",
+            "lastTrigger",
+            "createdAt",
+            "updatedAt"
+          ],
+          "properties": {
+            "channelType": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "integer"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "id": {
+              "type": "integer"
+            },
+            "lastError": {
+              "type": "string"
+            },
+            "lastTrigger": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "retryCount": {
+              "type": "integer"
+            },
+            "status": {
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "integer"
+            },
+            "updatedAt": {
+              "type": "integer"
+            },
+            "url": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/ShowWebhook"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "WebhookInboundRequest": {
+      "type": "object",
+      "required": [
+        "externalUserId",
+        "content",
+        "contentType"
+      ],
+      "properties": {
+        "content": {
+          "description": "消息内容",
+          "type": "string"
+        },
+        "contentType": {
+          "description": "内容类型",
+          "type": "string",
+          "default": "text",
+          "example": "text"
+        },
+        "conversationId": {
+          "description": "会话 ID（续接已有会话）",
+          "type": "integer"
+        },
+        "externalUserId": {
+          "description": "外部平台用户标识",
+          "type": "string"
+        }
+      }
+    },
+    "WebhookInboundResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "conversationId",
+        "messageId",
+        "content"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "content": {
+          "description": "AI 回复内容",
+          "type": "string"
+        },
+        "conversationId": {
+          "description": "使用或新建的会话 ID",
+          "type": "integer"
+        },
+        "messageId": {
+          "description": "AI 回复消息 UUID",
+          "type": "string"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "WebhookListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShowWebhook"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "WidgetMessageFeedbackRequest": {
+      "type": "object",
+      "required": [
+        "rating"
+      ],
+      "properties": {
+        "feedback": {
+          "description": "负评文字（≤500 字，可选）",
+          "type": "string"
+        },
+        "rating": {
+          "description": "\"up\" / \"down\"",
+          "type": "string"
+        }
+      }
+    },
+    "WidgetMessageItem": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "role",
+        "content",
+        "contentType",
+        "tokenCount",
+        "model",
+        "sources",
+        "rating",
+        "ratingFeedback",
+        "createdAt"
+      ],
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "model": {
+          "description": "模型（仅 assistant）",
+          "type": "string"
+        },
+        "rating": {
+          "description": "\"\" / \"up\" / \"down\"",
+          "type": "string"
+        },
+        "ratingFeedback": {
+          "description": "负评文字",
+          "type": "string"
+        },
+        "role": {
+          "description": "user / assistant / system",
+          "type": "string"
+        },
+        "sources": {
+          "description": "RAG 来源引用",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tokenCount": {
+          "description": "Token 消耗（仅 assistant）",
+          "type": "integer"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "WidgetMessageListRequest": {
+      "type": "object"
+    },
+    "WidgetMessageListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WidgetMessageItem"
+          }
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
+    },
+    "WidgetMessageSendRequest": {
+      "type": "object",
+      "required": [
+        "content",
+        "contentType"
+      ],
+      "properties": {
+        "content": {
+          "description": "用户消息内容",
+          "type": "string"
+        },
+        "contentType": {
+          "description": "内容类型，默认 text",
+          "type": "string",
+          "default": "text",
+          "example": "text"
+        }
+      }
+    },
+    "WidgetSessionCreateRequest": {
+      "type": "object",
+      "required": [
+        "visitorId"
+      ],
+      "properties": {
+        "title": {
+          "description": "会话标题（可选，默认 \"Widget: \u003cvisitorId\u003e\"）",
+          "type": "string"
+        },
+        "visitorId": {
+          "description": "访客标识（前端生成并持久化，建议 UUID v4）",
+          "type": "string"
+        }
+      }
+    },
+    "WidgetSessionData": {
+      "type": "object",
+      "required": [
+        "sessionToken",
+        "conversationId",
+        "visitorId",
+        "createdAt"
+      ],
+      "properties": {
+        "conversationId": {
+          "description": "会话 ID",
+          "type": "integer"
+        },
+        "createdAt": {
+          "description": "创建时间（Unix 秒）",
+          "type": "integer"
+        },
+        "sessionToken": {
+          "description": "会话令牌（= conversation UUID，后续请求凭证）",
+          "type": "string"
+        },
+        "suggestedQuestions": {
+          "description": "引导问答列表（来自绑定的 KB 配置）",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "visitorId": {
+          "description": "访客标识",
+          "type": "string"
+        }
+      }
+    },
+    "WidgetSessionResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "msg",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "sessionToken",
+            "conversationId",
+            "visitorId",
+            "createdAt"
+          ],
+          "properties": {
+            "conversationId": {
+              "description": "会话 ID",
+              "type": "integer"
+            },
+            "createdAt": {
+              "description": "创建时间（Unix 秒）",
+              "type": "integer"
+            },
+            "sessionToken": {
+              "description": "会话令牌（= conversation UUID，后续请求凭证）",
+              "type": "string"
+            },
+            "suggestedQuestions": {
+              "description": "引导问答列表（来自绑定的 KB 配置）",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "visitorId": {
+              "description": "访客标识",
+              "type": "string"
+            }
+          },
+          "$ref": "#/definitions/WidgetSessionData"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        }
+      }
     }
   },
-  "x-date": "2026-05-10 13:42:00",
+  "x-date": "2026-08-15 11:50:20",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

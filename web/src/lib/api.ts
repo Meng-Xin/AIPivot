@@ -787,3 +787,142 @@ export async function updateFlow(
 export async function deleteFlow(token: string, id: number) {
   return request<null>("DELETE", `/api/v1/flows/${id}`, token);
 }
+
+// ==================== Flow Run API ====================
+
+export interface FlowRunInfo {
+  id: number;
+  uuid: string;
+  flowId: number;
+  flowVersion: number;
+  status: "running" | "success" | "failed" | "timeout" | string;
+  triggerType: string;
+  input: string;
+  output: string;
+  nodeResults: string;
+  error: string;
+  totalMs: number;
+  tokenCount: number;
+  createdAt: number;
+}
+
+export async function listFlowRuns(
+  token: string,
+  flowId: number,
+  limit = 20,
+  offset = 0
+) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  return request<FlowRunInfo[]>(
+    "GET",
+    `/api/v1/flows/${flowId}/runs?${params}`,
+    token
+  );
+}
+
+export interface FlowRunStreamCallbacks {
+  onRunStart?: (data: { runId: number; flowId: number; flowVersion: number }) => void;
+  onNodeStart?: (data: { nodeId: string; nodeType: string; label: string }) => void;
+  onDelta?: (data: { nodeId: string; content: string }) => void;
+  onNodeEnd?: (data: {
+    nodeId: string;
+    status: string;
+    durationMs: number;
+    summary?: Record<string, unknown>;
+  }) => void;
+  onRunEnd?: (data: {
+    runId: number;
+    status: string;
+    totalMs: number;
+    tokenCount: number;
+    output: string;
+  }) => void;
+  onError?: (data: SSEError) => void;
+}
+
+/**
+ * runFlowStream 试运行 Flow 并接收 SSE 流式执行过程。
+ * 与 sendMessageStream 相同的 fetch + ReadableStream SSE 解析骨架。
+ */
+export async function runFlowStream(
+  token: string,
+  flowId: number,
+  message: string,
+  variables: Record<string, string> | undefined,
+  callbacks: FlowRunStreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> {
+  const res = await fetch(`${BASE}/api/v1/flows/${flowId}/run`, {
+    method: "POST",
+    headers: getHeaders(token),
+    body: JSON.stringify({ message, variables }),
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    const text = await res.text();
+    callbacks.onError?.({ code: res.status, msg: text });
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      const lines = part.trim().split("\n");
+      let eventName = "";
+      let eventData = "";
+
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          eventName = line.slice(7);
+        } else if (line.startsWith("data: ")) {
+          eventData = line.slice(6);
+        }
+      }
+
+      if (!eventName || !eventData) continue;
+
+      if (eventName === "done") break;
+
+      try {
+        const parsed = JSON.parse(eventData);
+        switch (eventName) {
+          case "run_start":
+            callbacks.onRunStart?.(parsed);
+            break;
+          case "node_start":
+            callbacks.onNodeStart?.(parsed);
+            break;
+          case "delta":
+            callbacks.onDelta?.(parsed);
+            break;
+          case "node_end":
+            callbacks.onNodeEnd?.(parsed);
+            break;
+          case "run_end":
+            callbacks.onRunEnd?.(parsed);
+            break;
+          case "error":
+            callbacks.onError?.(parsed as SSEError);
+            break;
+        }
+      } catch {
+        // 忽略非 JSON 数据
+      }
+    }
+  }
+}

@@ -272,7 +272,7 @@ agent, _ := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 - [x] 客户自助 Skill 注册（SkillPage：HTTP Skill 管理 + JSON Schema 参数校验）
 - [x] SLA 报表导出（CSV 二进制下载 + 浏览器原生打印 PDF）
 - [x] 多租户管理后台（AdminPage：租户设置 + 用户管理 + API 密钥三 Tab）
-- [ ] **Flow 执行运行时**（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点）— ⚠️ 当前阻塞项
+- [x] **Flow 执行运行时**（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点，SSE 试运行 + 执行历史）
 - [ ] 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
 - [ ] 从 pgvector 迁移到 Milvus（如有需要）
 
@@ -865,7 +865,31 @@ active ────────────────────────�
 - `go build ./...` ✅
 
 **下一步优先级：**
-1. P3: Flow 执行运行时（按已保存 Flow definition 编排 trigger/llm/skill/condition/end 节点）
+1. ~~P3: Flow 执行运行时~~ ✅
 2. P3: 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
 
-*文档版本：v2.6 | 更新日期：2026-06-15*
+### 2026-06-15 P3 — Flow 试运行运行时
+
+**完成内容：**
+
+1. **执行引擎模块** — 新增 `internal/modules/flow/`（definition 解析校验 / graph 邻接表 / blackboard 黑板变量 + 模板渲染 / expression 单比较求值器 / engine 单步顺序执行 / executors 五类节点执行器）。引擎纯内存编排、独立于 HTTP，事件通过 `EventEmitter` 回调抛出，未来 Asynq / 事件触发可直接复用。
+2. **关键设计**：condition 分支走 edge 的 `sourcePort` 字段（definition 本是 JSONB，无需迁移）；表达式求值零第三方依赖且 fail-soft（解析失败视为 true + warning）；环检测双保险（解析期 DFS + 运行期 maxSteps 64 / 每节点 3 次访问上限）；skill 找不到软失败为 skipped。
+3. **flow_runs 快照表** — 新增 `migrations/000010_flow_runs.*.sql` + `po/flow_run.go`，落库 node_results + flow_version 全量快照，Flow definition 后续编辑不污染历史回放；`internal/repository/flowrun` 提供租户隔离读写。
+4. **SSE 试运行端点** — `api/flows.api` 新增 `POST /api/v1/flows/:id/run`（手写 SSE handler）与 `GET /api/v1/flows/:id/runs`；SSE 协议扩展 `run_start / node_start / delta(带 nodeId) / node_end / run_end`；run 前 LLM HealthCheck（网关不可用不产生垃圾 run 记录）+ TokenLimiter 限额。
+5. **前端 RunPanel** — 新增 `web/src/components/FlowRunPanel.tsx` 集成到 FlowPage Inspector 双 Tab：测试输入 + RunTimeline（节点状态徽标 / llm 打字流按 nodeId 归组）+ RunHistory（历史表格，行展开 output 与 node_results）；运行时画布对应节点高亮。
+6. **单元测试** — `internal/modules/flow/engine_test.go` 覆盖表达式全场景、环检测、condition 分支、黑板模板与假 executor 全链路。
+
+**验证：**
+
+- `go test ./...` ✅
+- `go build ./...` ✅
+- `npm.cmd run build` ✅
+- swagger 重新生成 ✅
+
+**下一步优先级：**
+1. P3: 多 Agent 运行过程可观测性（worker trace / tool latency / 编排耗时）
+2. P4: Flow 定时/事件触发（复用执行引擎接入 Asynq）
+
+---
+
+*文档版本：v2.7 | 更新日期：2026-08-15*

@@ -178,6 +178,8 @@ DB → Query(GORM Gen) → DAO → Repo(接口) → ServiceContext → Logic
 | `/api/v1/knowledge-bases/:kbId` | GET/PUT/DELETE | 知识库详情 / 更新 / 删除 |
 | `/api/v1/knowledge-bases/:kbId/documents` | GET | 文档列表 |
 | `/api/v1/knowledge-bases/:kbId/documents/upload` | POST | 上传文档 |
+| `/api/v1/flows/:id/run` | POST | **Flow 试运行**（SSE 流式：run_start/node_start/delta/node_end/run_end） |
+| `/api/v1/flows/:id/runs` | GET | Flow 执行历史列表（flow_runs 快照） |
 | `/api/v1/open/widget/sessions` | POST | **Widget**：创建访客会话（public key 认证 + Origin 白名单） |
 | `/api/v1/open/widget/sessions/:sessionToken/messages` | GET | **Widget**：拉取历史消息 |
 | `/api/v1/open/widget/sessions/:sessionToken/messages/stream` | POST | **Widget**：流式发送消息（SSE，持久化 user + assistant） |
@@ -194,6 +196,7 @@ DB → Query(GORM Gen) → DAO → Repo(接口) → ServiceContext → Logic
 | `document_chunks` | 文档切块表（含 pgvector 1536 维向量 + HNSW 索引） |
 | `conversations` | 会话表（可关联知识库） |
 | `messages` | 消息表（user/assistant 角色，含 token 统计） |
+| `flow_runs` | Flow 执行记录表（全量快照：node_results + flow_version，历史回放不受后续编辑污染） |
 
 ### SSE 流式协议
 

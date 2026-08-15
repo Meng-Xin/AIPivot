@@ -83,3 +83,42 @@ type MessageEnd struct {
 	LatencyMs  int      `json:"latencyMs"`
 	Sources    []string `json:"sources,omitempty"`
 }
+
+// ========== Flow 试运行 SSE 事件数据结构 ==========
+
+// RunStart Flow 试运行开始事件。
+type RunStart struct {
+	RunID       int64  `json:"runId"`
+	FlowID      int64  `json:"flowId"`
+	FlowVersion int    `json:"flowVersion"`
+}
+
+// NodeStart 节点开始执行事件。
+type NodeStart struct {
+	NodeID   string `json:"nodeId"`
+	NodeType string `json:"nodeType"`
+	Label    string `json:"label"`
+}
+
+// FlowDelta 节点执行过程中的增量内容事件（区别于会话消息的 Delta，多带 nodeId）。
+type FlowDelta struct {
+	NodeID  string `json:"nodeId"`
+	Content string `json:"content"`
+}
+
+// NodeEnd 节点执行结束事件。
+type NodeEnd struct {
+	NodeID     string         `json:"nodeId"`
+	Status     string         `json:"status"`
+	DurationMs int64          `json:"durationMs"`
+	Summary    map[string]any `json:"summary,omitempty"`
+}
+
+// RunEnd Flow 试运行结束事件。
+type RunEnd struct {
+	RunID      int64  `json:"runId"`
+	Status     string `json:"status"`
+	TotalMs    int64  `json:"totalMs"`
+	TokenCount int    `json:"tokenCount"`
+	Output     string `json:"output"`
+}

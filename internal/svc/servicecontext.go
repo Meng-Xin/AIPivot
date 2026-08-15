@@ -15,12 +15,14 @@ import (
 	"aipivot/internal/modules/auth"
 	"aipivot/internal/modules/channel/webhook"
 	"aipivot/internal/modules/chat"
+	flowmod "aipivot/internal/modules/flow"
 	"aipivot/internal/modules/knowledge"
 	"aipivot/internal/modules/rag"
 	"aipivot/internal/observability"
 	authrepo "aipivot/internal/repository/auth"
 	chatrepo "aipivot/internal/repository/chat"
 	flowrepo "aipivot/internal/repository/flow"
+	flowrunrepo "aipivot/internal/repository/flowrun"
 	knowledgerepo "aipivot/internal/repository/knowledge"
 	skillrepo "aipivot/internal/repository/skill"
 	webhookrepo "aipivot/internal/repository/webhook"
@@ -31,6 +33,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 )
 
@@ -67,7 +70,8 @@ type ServiceContext struct {
 	SkillRepo skillrepo.Repository
 
 	// Flow（可视化流程定义）
-	FlowRepo flowrepo.Repository
+	FlowRepo    flowrepo.Repository
+	FlowRunRepo flowrunrepo.Repository
 
 	// Webhook
 	WebhookRepo     webhook.Repository
@@ -76,6 +80,7 @@ type ServiceContext struct {
 	// LLM & RAG
 	LLMClient         *llm.Client
 	RAGService        *rag.Service
+	FlowEngine        *flowmod.Engine // 可视化 Flow 执行引擎
 	AsynqClient       *asynq.Client
 	TokenLimiter      *ratelimit.TokenLimiter       // 每租户日 Token 配额限流
 	WidgetRateLimiter *ratelimit.SlidingWindowLimiter // Widget 访客维度滑窗限流
@@ -153,6 +158,21 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		Temperature:    c.LLM.Temperature,
 	})
 
+	// Flow 执行引擎（Skill 解析器按租户请求级加载，与 loadTenantSkills 同策略：失败静默降级）
+	skillRepo := skillrepo.NewSkillRepo(q, db)
+	flowEngine := flowmod.NewEngine(ragService, llmClient, func(ctx context.Context, tenantID int64) []agent.Tool {
+		skillPOs, err := skillRepo.GetEnabledByTenant(ctx, tenantID)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("flow skillResolver err: %v (degrading to no tools)", err)
+			return nil
+		}
+		skillTools := make([]agent.Tool, 0, len(skillPOs))
+		for _, s := range skillPOs {
+			skillTools = append(skillTools, tools.NewHttpToolFromSkill(s))
+		}
+		return skillTools
+	}, flowmod.Options{MaxSteps: c.Flow.MaxSteps})
+
 	// TokenLimiter（Redis 令牌桶，限制每租户日 token 用量）
 	tokenLimiter := ratelimit.NewTokenLimiter(redisClient, c.RateLimit.DailyTokenLimit)
 
@@ -194,10 +214,11 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		MessageRepo:      chatrepo.NewMessageRepo(q),
 
 		// Skill
-		SkillRepo: skillrepo.NewSkillRepo(q, db),
+		SkillRepo: skillRepo,
 
 		// Flow
-		FlowRepo: flowrepo.NewFlowRepo(q),
+		FlowRepo:    flowrepo.NewFlowRepo(q),
+		FlowRunRepo: flowrunrepo.NewFlowRunRepo(q),
 
 		// Webhook
 		WebhookRepo:     wbRepo,
@@ -206,6 +227,7 @@ func NewServiceContext(c config.Config) (*ServiceContext, error) {
 		// LLM & RAG
 		LLMClient:         llmClient,
 		RAGService:        ragService,
+		FlowEngine:        flowEngine,
 		AsynqClient:       asynqClient,
 		TokenLimiter:      tokenLimiter,
 		WidgetRateLimiter: widgetLimiter,

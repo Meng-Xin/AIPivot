@@ -16,6 +16,13 @@ type Config struct {
 	Agent        AgentConf
 	ModelPricing []ModelPricingConf
 	RateLimit    RateLimitConf
+	Flow         FlowConf
+}
+
+// FlowConf 可视化流程执行配置
+type FlowConf struct {
+	RunTimeoutSec int `json:",default=60"` // 单次试运行超时（秒）
+	MaxSteps      int `json:",default=64"` // 单次执行最大步数（防环/防失控）
 }
 
 type AuthConf struct {

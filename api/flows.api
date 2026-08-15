@@ -35,6 +35,45 @@ type (
 		ID int64 `path:"id"`
 	}
 
+	// RunFlowRequest 试运行流程（SSE 流式返回执行过程）
+	RunFlowRequest {
+		ID        int64             `path:"id"`
+		Message   string            `json:"message"`             // 测试消息（≤ 2000 字符）
+		Variables map[string]string `json:"variables,optional"` // 测试变量，供 condition 表达式 / prompt 模板引用
+	}
+
+	// ListFlowRunsRequest 执行历史列表
+	ListFlowRunsRequest {
+		ID     int64 `path:"id"`
+		Limit  int   `form:"limit,optional"`
+		Offset int   `form:"offset,optional"`
+	}
+
+	// ShowFlowRun 执行记录展示对象
+	ShowFlowRun {
+		ID          int64  `json:"id"`
+		UUID        string `json:"uuid"`
+		FlowID      int64  `json:"flowId"`
+		FlowVersion int    `json:"flowVersion"`
+		Status      string `json:"status"`
+		TriggerType string `json:"triggerType"`
+		Input       string `json:"input"`       // 执行输入 JSON 字符串
+		Output      string `json:"output"`      // 最终输出
+		NodeResults string `json:"nodeResults"` // 节点结果快照 JSON 数组字符串
+		Error       string `json:"error"`
+		TotalMs     int    `json:"totalMs"`
+		TokenCount  int    `json:"tokenCount"`
+		CreatedAt   int64  `json:"createdAt"`
+	}
+
+	// FlowRunListResponse 执行历史列表响应
+	FlowRunListResponse {
+		Code      int32         `json:"code"`
+		Msg       string        `json:"msg"`
+		Timestamp int64         `json:"timestamp"`
+		Data      []ShowFlowRun `json:"data"`
+	}
+
 	// ShowFlow 流程展示对象
 	ShowFlow {
 		ID          int64  `json:"id"`
@@ -92,4 +131,12 @@ service aipivot-api {
 	@doc "删除 Flow"
 	@handler DeleteFlow
 	delete /flows/:id (DeleteFlowRequest) returns (CommResponse)
+
+	@doc "试运行 Flow（SSE 流式返回每个节点执行过程）"
+	@handler RunFlow
+	post /flows/:id/run (RunFlowRequest)
+
+	@doc "获取 Flow 执行历史"
+	@handler ListFlowRuns
+	get /flows/:id/runs (ListFlowRunsRequest) returns (FlowRunListResponse)
 }

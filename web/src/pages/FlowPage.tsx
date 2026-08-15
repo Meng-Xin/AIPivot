@@ -21,6 +21,7 @@ import {
   ShowFlow,
   updateFlow,
 } from "../lib/api";
+import FlowRunPanel from "../components/FlowRunPanel";
 import { useAuthStore } from "../store/auth";
 
 type FlowNodeType = "trigger" | "llm" | "skill" | "condition" | "end";
@@ -171,6 +172,8 @@ export default function FlowPage() {
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [newFlowName, setNewFlowName] = useState("客服问答流程");
+  const [inspectorTab, setInspectorTab] = useState<"node" | "run">("node");
+  const [runningNodeId, setRunningNodeId] = useState<string | null>(null);
 
   const selectedNode = useMemo(
     () => definition.nodes.find((node) => node.id === selectedNodeId) ?? null,
@@ -233,6 +236,7 @@ export default function FlowPage() {
     setDefinition(next);
     setSelectedNodeId(next.nodes[0]?.id ?? "");
     setConnectSource(null);
+    setRunningNodeId(null);
     setDirty(false);
   };
 
@@ -553,7 +557,9 @@ export default function FlowPage() {
                     }}
                     className={`absolute w-[172px] rounded-lg border bg-white px-3 py-2 text-left shadow-sm transition hover:shadow-md ${
                       active ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"
-                    } ${connectSource === node.id ? "ring-2 ring-amber-200" : ""}`}
+                    } ${connectSource === node.id ? "ring-2 ring-amber-200" : ""} ${
+                      runningNodeId === node.id ? "border-emerald-400 ring-2 ring-emerald-200" : ""
+                    }`}
                     style={{ left: node.x, top: node.y }}
                   >
                     <div className="flex items-center gap-2">
@@ -573,11 +579,47 @@ export default function FlowPage() {
 
           <aside className="flex w-80 flex-col border-l border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">Inspector</h2>
-              <p className="text-xs text-slate-500">{selectedNode ? selectedNode.id : "未选择节点"}</p>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-900">Inspector</h2>
+                <div className="flex rounded-md border border-slate-200 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setInspectorTab("node")}
+                    className={`rounded px-2 py-1 font-medium ${
+                      inspectorTab === "node" ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    节点
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectorTab("run")}
+                    className={`rounded px-2 py-1 font-medium ${
+                      inspectorTab === "run" ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    试运行
+                  </button>
+                </div>
+              </div>
+              {inspectorTab === "node" && (
+                <p className="text-xs text-slate-500">{selectedNode ? selectedNode.id : "未选择节点"}</p>
+              )}
             </div>
 
-            {selectedNode ? (
+            {inspectorTab === "run" ? (
+              current ? (
+                <FlowRunPanel
+                  token={token ?? ""}
+                  flow={current}
+                  onNodeActive={setRunningNodeId}
+                />
+              ) : (
+                <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-slate-400">
+                  请先选择或新建 Flow
+                </div>
+              )
+            ) : selectedNode ? (
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-slate-500">标签</span>

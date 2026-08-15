@@ -232,6 +232,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/flows/:id",
 					Handler: flows.DeleteFlowHandler(serverCtx),
 				},
+				{
+					// 试运行 Flow（SSE 流式返回每个节点执行过程）
+					Method:  http.MethodPost,
+					Path:    "/flows/:id/run",
+					Handler: flows.RunFlowHandler(serverCtx),
+				},
+				{
+					// 获取 Flow 执行历史
+					Method:  http.MethodGet,
+					Path:    "/flows/:id/runs",
+					Handler: flows.ListFlowRunsHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),

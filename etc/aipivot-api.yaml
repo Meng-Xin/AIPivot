@@ -95,3 +95,8 @@ ModelPricing:
 # 每租户 Token 日配额限流（0 = 不限制）
 RateLimit:
   DailyTokenLimit: 0
+
+# 可视化 Flow 执行配置
+Flow:
+  RunTimeoutSec: 60
+  MaxSteps: 64

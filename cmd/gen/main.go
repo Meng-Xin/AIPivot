@@ -29,6 +29,7 @@ func main() {
 		po.Webhook{},
 		po.Skill{},
 		po.Flow{},
+		po.FlowRun{},
 	)
 
 	g.Execute()
