@@ -20,6 +20,13 @@ func NewKBRepo(q *query.Query) *KBRepo {
 }
 
 func (r *KBRepo) Create(ctx context.Context, kb *po.KnowledgeBase) error {
+	// JSONB 列不接受空字符串，兜底成空对象 / 空数组（与 MessageRepo.Create 一致）
+	if kb.Settings == "" {
+		kb.Settings = "{}"
+	}
+	if kb.SuggestedQuestions == "" {
+		kb.SuggestedQuestions = "[]"
+	}
 	return r.q.KnowledgeBase.WithContext(ctx).Create(kb)
 }
 

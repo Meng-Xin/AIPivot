@@ -20,6 +20,10 @@ func NewDocumentRepo(q *query.Query) *DocumentRepo {
 }
 
 func (r *DocumentRepo) Create(ctx context.Context, doc *po.Document) error {
+	// metadata 是 NOT NULL JSONB，空字符串会被 PG 拒绝（与 ConversationRepo.Create 一致）
+	if doc.Metadata == "" {
+		doc.Metadata = "{}"
+	}
 	return r.q.Document.WithContext(ctx).Create(doc)
 }
 

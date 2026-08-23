@@ -63,13 +63,16 @@ func NewKnowledgeBasePo(req *types.CreateKnowledgeBaseRequest, tenantID int64) *
 		m = "text-embedding-3-small"
 	}
 	return &po.KnowledgeBase{
-		UUID:               uuid.New().String(),
-		TenantID:           tenantID,
-		Name:               req.Name,
-		Description:        req.Description,
-		Model:              m,
-		Dimension:          ResolveDimension(m),
-		Status:             "active",
+		UUID:        uuid.New().String(),
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		Model:       m,
+		Dimension:   ResolveDimension(m),
+		Status:      "active",
+		// settings 是 NOT NULL JSONB：GORM 会把零值 "" 显式写入并触发 22P02，
+		// 必须显式给空对象而不是依赖列的 DEFAULT '{}'。
+		Settings:           "{}",
 		SuggestedQuestions: SerializeSuggestedQuestions(NormalizeSuggestedQuestions(req.SuggestedQuestions)),
 	}
 }

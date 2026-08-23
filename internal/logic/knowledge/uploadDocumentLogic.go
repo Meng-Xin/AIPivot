@@ -73,6 +73,7 @@ func (l *UploadDocumentLogic) UploadDocument(req *types.UploadDocumentRequest, r
 		FileSize:        header.Size,
 		FilePath:        string(content), // MVP: 文本内容暂存于此字段，后续迁移到 MinIO/OSS
 		Status:          "pending",
+		Metadata:        "{}", // NOT NULL JSONB：零值 "" 会被 GORM 显式写入并触发 22P02
 	}
 
 	if err = l.svcCtx.DocumentRepo.Create(l.ctx, doc); err != nil {

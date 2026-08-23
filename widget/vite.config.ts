@@ -7,6 +7,12 @@ import preact from '@preact/preset-vite';
 // - 不打包 Preact 到全局（externalize 由 preset 内部处理 jsx-runtime）
 export default defineConfig({
   plugins: [preact()],
+  // 端口固定在 5174：public key 的 allowed_origins 是严格匹配 + fail-closed，
+  // 端口漂移会让 Widget 直接吃 403，所以用 strictPort 让冲突尽早暴露。
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
   build: {
     lib: {
       entry: 'src/index.tsx',
